@@ -1,5 +1,6 @@
 using InventoryFlow.Domain.Entities;
 using InventoryFlow.Infrastructure.Identity;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -12,12 +13,17 @@ namespace InventoryFlow.Infrastructure.Persistence;
 /// <param name="options">The options used to configure the context.</param>
 public sealed class ApplicationDbContext(
     DbContextOptions<ApplicationDbContext> options)
-    : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>(options)
+    : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>(options), IDataProtectionKeyContext
 {
     /// <summary>
     /// Gets the issued refresh tokens.
     /// </summary>
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
+    /// <summary>
+    /// Gets the shared data-protection keys used by Identity token providers.
+    /// </summary>
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder builder)

@@ -1,5 +1,6 @@
 using InventoryFlow.Infrastructure.Identity;
 using InventoryFlow.Infrastructure.Persistence;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -34,7 +35,9 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(
             connectionString,
             sqlServerOptions => sqlServerOptions.EnableRetryOnFailure()));
-        services.AddDataProtection();
+        services.AddDataProtection()
+            .SetApplicationName("InventoryFlow")
+            .PersistKeysToDbContext<ApplicationDbContext>();
 
         services.AddIdentityCore<ApplicationUser>(options =>
             {

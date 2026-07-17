@@ -1,4 +1,10 @@
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
+using System.Xml.Linq;
+using Microsoft.AspNetCore.DataProtection.Repositories;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace InventoryFlow.IntegrationTests.Api;
 
@@ -21,6 +27,37 @@ public sealed class InventoryFlowApiFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable(
             ConnectionStringEnvironmentVariable,
             "Server=inventory-flow-test;Database=InventoryFlowTests;Integrated Security=True;TrustServerCertificate=True");
+    }
+
+    /// <inheritdoc />
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.ConfigureTestServices(services => services
+            .PostConfigure<KeyManagementOptions>(options =>
+                options.XmlRepository = new InMemoryXmlRepository()));
+    }
+
+    private sealed class InMemoryXmlRepository : IXmlRepository
+    {
+        private readonly List<XElement> _elements = [];
+
+        public IReadOnlyCollection<XElement> GetAllElements()
+        {
+            lock (_elements)
+            {
+                return _elements.Select(element => new XElement(element)).ToArray();
+            }
+        }
+
+        public void StoreElement(XElement element, string friendlyName)
+        {
+            ArgumentNullException.ThrowIfNull(element);
+
+            lock (_elements)
+            {
+                _elements.Add(new XElement(element));
+            }
+        }
     }
 
     /// <inheritdoc />
