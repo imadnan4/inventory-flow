@@ -1,0 +1,36 @@
+using InventoryFlow.Api.ExceptionHandling;
+using InventoryFlow.Domain.Exceptions;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging.Abstractions;
+
+namespace InventoryFlow.IntegrationTests.Api;
+
+/// <summary>
+/// Verifies exception responses produced by <see cref="GlobalExceptionHandler"/>.
+/// </summary>
+public sealed class GlobalExceptionHandlerTests
+{
+    /// <summary>
+    /// Produces an RFC 7807 response for a domain exception.
+    /// </summary>
+    [Fact]
+    public async Task TryHandleAsync_WithDomainException_WritesProblemDetailsMediaType()
+    {
+        // Arrange
+        var httpContext = new DefaultHttpContext();
+        httpContext.Response.Body = new MemoryStream();
+        var handler = new GlobalExceptionHandler(
+            NullLogger<GlobalExceptionHandler>.Instance);
+
+        // Act
+        var handled = await handler.TryHandleAsync(
+            httpContext,
+            new DomainException("Product SKU must be unique."),
+            CancellationToken.None);
+
+        // Assert
+        Assert.True(handled);
+        Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
+        Assert.Equal("application/problem+json", httpContext.Response.ContentType);
+    }
+}

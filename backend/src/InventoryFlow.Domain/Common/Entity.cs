@@ -1,7 +1,7 @@
 namespace InventoryFlow.Domain.Common;
 
 /// <summary>
-/// Provides identity-based equality for domain entities.
+/// Represents a domain entity with an identity.
 /// </summary>
 /// <typeparam name="TId">The type used to identify the entity.</typeparam>
 public abstract class Entity<TId>

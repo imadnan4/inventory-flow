@@ -17,6 +17,17 @@ public sealed class GlobalExceptionHandler(
         Exception exception,
         CancellationToken cancellationToken)
     {
+        if (httpContext.Response.HasStarted)
+        {
+            logger.LogWarning(
+                exception,
+                "The response has already started for {RequestMethod} {RequestPath}",
+                httpContext.Request.Method,
+                httpContext.Request.Path);
+
+            return false;
+        }
+
         var statusCode = exception is DomainException
             ? StatusCodes.Status400BadRequest
             : StatusCodes.Status500InternalServerError;
@@ -39,7 +50,11 @@ public sealed class GlobalExceptionHandler(
         };
 
         httpContext.Response.StatusCode = statusCode;
-        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+        await httpContext.Response.WriteAsJsonAsync(
+            problemDetails,
+            options: null,
+            contentType: "application/problem+json",
+            cancellationToken: cancellationToken);
 
         return true;
     }
