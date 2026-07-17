@@ -44,6 +44,23 @@ public sealed class RefreshTokenTests
     }
 
     /// <summary>
+    /// Rejects empty user identifiers.
+    /// </summary>
+    [Fact]
+    public void Constructor_WithEmptyUserIdentifier_ThrowsDomainException()
+    {
+        // Act
+        var exception = Record.Exception(() => new RefreshToken(
+            Guid.NewGuid(),
+            Guid.Empty,
+            "token-hash",
+            DateTimeOffset.UtcNow.AddDays(7)));
+
+        // Assert
+        Assert.IsType<DomainException>(exception);
+    }
+
+    /// <summary>
     /// Rejects refresh-token expiration times that are not UTC.
     /// </summary>
     [Fact]

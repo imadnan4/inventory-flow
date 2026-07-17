@@ -15,7 +15,7 @@ public sealed class RefreshToken : Entity<Guid>
     /// <param name="userId">The identifier of the token owner.</param>
     /// <param name="tokenHash">The one-way hash of the issued refresh token.</param>
     /// <param name="expiresAtUtc">The UTC instant after which the token cannot be used.</param>
-    /// <exception cref="DomainException">Thrown when the token hash is empty or the expiration is not UTC.</exception>
+    /// <exception cref="DomainException">Thrown when an identifier or token hash is empty, or the expiration is not UTC.</exception>
     public RefreshToken(
         Guid id,
         Guid userId,
@@ -23,6 +23,16 @@ public sealed class RefreshToken : Entity<Guid>
         DateTimeOffset expiresAtUtc)
         : base(id)
     {
+        if (id == Guid.Empty)
+        {
+            throw new DomainException("Refresh token identifier is required.");
+        }
+
+        if (userId == Guid.Empty)
+        {
+            throw new DomainException("Refresh token user identifier is required.");
+        }
+
         if (string.IsNullOrWhiteSpace(tokenHash))
         {
             throw new DomainException("Refresh token hash is required.");

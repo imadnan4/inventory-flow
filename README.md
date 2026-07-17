@@ -55,7 +55,7 @@ frontend/
 | Backend | ASP.NET Core 9, C#, EF Core, SQL Server, ASP.NET Identity, MediatR, FluentValidation, AutoMapper, Serilog |
 | Frontend | React 19, TypeScript, Vite, React Router v7, TanStack Query/Table, React Hook Form, Zod, Axios, Zustand |
 | Design | shadcn/ui, Tailwind CSS v4, Hugeicons, Recharts, Sonner, Motion |
-| Tooling | Bun, xUnit, Docker-ready configuration, EF Core local tool manifest |
+| Tooling | Bun, xUnit, EF Core local tool manifest |
 
 ## Get started
 
@@ -115,11 +115,11 @@ dotnet test backend/InventoryFlow.sln
 dotnet format backend/InventoryFlow.sln --verify-no-changes --no-restore
 
 # Frontend
- cd frontend
- bun run typecheck
- bun run lint
- bun run build
- bunx prettier --check .
+cd frontend
+bun run typecheck
+bun run lint
+bun run build
+bunx prettier --check .
 ```
 
 ## Delivery workflow

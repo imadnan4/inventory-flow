@@ -6,15 +6,15 @@ namespace InventoryFlow.IntegrationTests.Api;
 /// <summary>
 /// Verifies the API's operational health endpoint.
 /// </summary>
-public sealed class HealthEndpointTests : IClassFixture<WebApplicationFactory<Program>>
+public sealed class HealthEndpointTests : IClassFixture<InventoryFlowApiFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly InventoryFlowApiFactory _factory;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="HealthEndpointTests"/> class.
     /// </summary>
     /// <param name="factory">The in-memory API host.</param>
-    public HealthEndpointTests(WebApplicationFactory<Program> factory)
+    public HealthEndpointTests(InventoryFlowApiFactory factory)
     {
         _factory = factory;
     }
