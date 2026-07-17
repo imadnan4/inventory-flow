@@ -1,0 +1,6 @@
+@InventoryFlow.Api_HostAddress = http://localhost:5255
+
+GET {{InventoryFlow.Api_HostAddress}}/health
+Accept: application/json
+
+###
