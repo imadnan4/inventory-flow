@@ -15,17 +15,19 @@ export default defineConfig({
     rolldownOptions: {
       output: {
         manualChunks: (id) => {
+          const normalizedId = id.replaceAll("\\", "/")
+
           if (
-            id.includes("/node_modules/react/") ||
-            id.includes("/node_modules/react-dom/") ||
-            id.includes("/node_modules/react-router/")
+            normalizedId.includes("/node_modules/react/") ||
+            normalizedId.includes("/node_modules/react-dom/") ||
+            normalizedId.includes("/node_modules/react-router/")
           ) {
             return "react"
           }
 
           if (
-            id.includes("/node_modules/@base-ui/") ||
-            id.includes("/node_modules/@hugeicons/")
+            normalizedId.includes("/node_modules/@base-ui/") ||
+            normalizedId.includes("/node_modules/@hugeicons/")
           ) {
             return "ui"
           }
