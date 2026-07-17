@@ -47,6 +47,7 @@ public sealed class GlobalExceptionHandler(
             Type = statusCode == StatusCodes.Status400BadRequest
                 ? "https://tools.ietf.org/html/rfc9110#section-15.5.1"
                 : "https://tools.ietf.org/html/rfc9110#section-15.6.1",
+            Detail = exception is DomainException ? exception.Message : null,
         };
 
         httpContext.Response.StatusCode = statusCode;

@@ -1,6 +1,8 @@
+using System.Text.Json;
 using InventoryFlow.Api.ExceptionHandling;
 using InventoryFlow.Domain.Exceptions;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace InventoryFlow.IntegrationTests.Api;
@@ -32,5 +34,11 @@ public sealed class GlobalExceptionHandlerTests
         Assert.True(handled);
         Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
         Assert.Equal("application/problem+json", httpContext.Response.ContentType);
+
+        httpContext.Response.Body.Position = 0;
+        var problemDetails = await JsonSerializer.DeserializeAsync<ProblemDetails>(
+            httpContext.Response.Body);
+        Assert.NotNull(problemDetails);
+        Assert.Equal("Product SKU must be unique.", problemDetails.Detail);
     }
 }
