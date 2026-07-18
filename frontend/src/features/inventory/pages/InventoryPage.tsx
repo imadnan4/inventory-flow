@@ -7,6 +7,10 @@ import {
   recordInventoryMovement,
 } from "@/features/inventory/inventory-api"
 import { inventoryMovementSchema } from "@/features/inventory/inventory-schema"
+import {
+  inventoryBalancesKey,
+  inventoryBalancesKeyPrefix,
+} from "@/features/inventory/inventory-queries"
 import type { RecordInventoryMovementPayload } from "@/features/inventory/types"
 import { listProducts } from "@/features/products/products-api"
 import { listWarehouses } from "@/features/warehouses/warehouses-api"
@@ -18,20 +22,6 @@ const productsKey = (userId: string, workspaceId: string) =>
   ["products", userId, workspaceId] as const
 const warehousesKey = (userId: string, workspaceId: string) =>
   ["warehouses", userId, workspaceId] as const
-const inventoryBalancesKey = (
-  userId: string,
-  workspaceId: string,
-  warehouseId: string,
-  productId: string
-) =>
-  [
-    "inventory",
-    "balances",
-    userId,
-    workspaceId,
-    warehouseId,
-    productId,
-  ] as const
 const inventoryMovementKey = (userId: string, workspaceId: string) =>
   ["inventory", "movement", userId, workspaceId] as const
 
@@ -93,7 +83,7 @@ export function Component() {
       setRetryMovement(null)
       setQuantity("")
       queryClient.invalidateQueries({
-        queryKey: ["inventory", "balances", userId, workspaceId],
+        queryKey: inventoryBalancesKeyPrefix(userId, workspaceId),
       })
     },
     onError: (reason, variables) => {

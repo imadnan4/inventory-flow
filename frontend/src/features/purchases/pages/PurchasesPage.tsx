@@ -10,6 +10,7 @@ import {
   listPurchaseReceipts,
   recordPurchaseReceipt,
 } from "@/features/purchases/purchases-api"
+import { inventoryBalancesKeyPrefix } from "@/features/inventory/inventory-queries"
 import { purchaseReceiptSchema } from "@/features/purchases/purchases-schema"
 import type { RecordPurchaseReceiptPayload } from "@/features/purchases/types"
 import { listSuppliers } from "@/features/suppliers/suppliers-api"
@@ -70,7 +71,7 @@ export function Component() {
         queryKey: key("purchases-receipts", userId, workspaceId),
       })
       queryClient.invalidateQueries({
-        queryKey: ["inventory", "balances", userId, workspaceId],
+        queryKey: inventoryBalancesKeyPrefix(userId, workspaceId),
       })
     },
     onError: (error, variables) => {

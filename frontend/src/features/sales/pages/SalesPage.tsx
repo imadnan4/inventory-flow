@@ -10,6 +10,7 @@ import {
   listSalesFulfillments,
   recordSalesFulfillment,
 } from "@/features/sales/sales-api"
+import { inventoryBalancesKeyPrefix } from "@/features/inventory/inventory-queries"
 import { salesFulfillmentSchema } from "@/features/sales/sales-schema"
 import type { RecordSalesFulfillmentPayload } from "@/features/sales/types"
 import { listWarehouses } from "@/features/warehouses/warehouses-api"
@@ -63,7 +64,7 @@ export function Component() {
         queryKey: key("sales-fulfillments", userId, workspaceId),
       })
       queryClient.invalidateQueries({
-        queryKey: ["inventory", "balances", userId, workspaceId],
+        queryKey: inventoryBalancesKeyPrefix(userId, workspaceId),
       })
     },
     onError: (error, variables) => {

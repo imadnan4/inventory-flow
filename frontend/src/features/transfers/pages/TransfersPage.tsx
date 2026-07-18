@@ -10,6 +10,7 @@ import {
   listWarehouseTransfers,
   recordWarehouseTransfer,
 } from "@/features/transfers/transfers-api"
+import { inventoryBalancesKeyPrefix } from "@/features/inventory/inventory-queries"
 import { warehouseTransferSchema } from "@/features/transfers/transfers-schema"
 import type { RecordWarehouseTransferPayload } from "@/features/transfers/types"
 import { listWarehouses } from "@/features/warehouses/warehouses-api"
@@ -64,7 +65,7 @@ export function Component() {
         queryKey: key("transfers", userId, workspaceId),
       })
       queryClient.invalidateQueries({
-        queryKey: ["inventory", "balances", userId, workspaceId],
+        queryKey: inventoryBalancesKeyPrefix(userId, workspaceId),
       })
     },
     onError: (error, variables) => {
@@ -80,7 +81,9 @@ export function Component() {
       quantity,
     })
     if (!parsed.success) {
-      setFormError(parsed.error.issues[0]?.message ?? "Check the transfer details.")
+      setFormError(
+        parsed.error.issues[0]?.message ?? "Check the transfer details."
+      )
       return
     }
     setFormError("")
@@ -106,7 +109,9 @@ export function Component() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {loading ? <p className="text-muted-foreground">Loading catalog…</p> : null}
+              {loading ? (
+                <p className="text-muted-foreground">Loading catalog…</p>
+              ) : null}
               {warehouses.isError || products.isError ? (
                 <p className="text-destructive" role="alert">
                   {readError(warehouses.error ?? products.error)}
@@ -114,36 +119,75 @@ export function Component() {
               ) : null}
               <label className="block text-sm">
                 Source warehouse
-                <select className="mt-1 w-full rounded-md border bg-background p-2" disabled={disabled}
-                  onChange={(e) => setSourceWarehouseId(e.target.value)} value={sourceWarehouseId}>
+                <select
+                  className="mt-1 w-full rounded-md border bg-background p-2"
+                  disabled={disabled}
+                  onChange={(e) => setSourceWarehouseId(e.target.value)}
+                  value={sourceWarehouseId}
+                >
                   <option value="">Choose a source warehouse</option>
-                  {warehouses.data?.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+                  {warehouses.data?.map((x) => (
+                    <option key={x.id} value={x.id}>
+                      {x.name}
+                    </option>
+                  ))}
                 </select>
               </label>
               <label className="block text-sm">
                 Destination warehouse
-                <select className="mt-1 w-full rounded-md border bg-background p-2" disabled={disabled}
-                  onChange={(e) => setDestinationWarehouseId(e.target.value)} value={destinationWarehouseId}>
+                <select
+                  className="mt-1 w-full rounded-md border bg-background p-2"
+                  disabled={disabled}
+                  onChange={(e) => setDestinationWarehouseId(e.target.value)}
+                  value={destinationWarehouseId}
+                >
                   <option value="">Choose a destination warehouse</option>
-                  {warehouses.data?.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+                  {warehouses.data?.map((x) => (
+                    <option key={x.id} value={x.id}>
+                      {x.name}
+                    </option>
+                  ))}
                 </select>
               </label>
               <label className="block text-sm">
                 Product
-                <select className="mt-1 w-full rounded-md border bg-background p-2" disabled={disabled}
-                  onChange={(e) => setProductId(e.target.value)} value={productId}>
+                <select
+                  className="mt-1 w-full rounded-md border bg-background p-2"
+                  disabled={disabled}
+                  onChange={(e) => setProductId(e.target.value)}
+                  value={productId}
+                >
                   <option value="">Choose a product</option>
-                  {products.data?.map((x) => <option key={x.id} value={x.id}>{x.name} ({x.sku})</option>)}
+                  {products.data?.map((x) => (
+                    <option key={x.id} value={x.id}>
+                      {x.name} ({x.sku})
+                    </option>
+                  ))}
                 </select>
               </label>
               <label className="block text-sm">
                 Quantity
-                <input className="mt-1 w-full rounded-md border bg-background p-2" disabled={disabled}
-                  inputMode="decimal" onChange={(e) => setQuantity(e.target.value)} placeholder="0.0000" value={quantity} />
+                <input
+                  className="mt-1 w-full rounded-md border bg-background p-2"
+                  disabled={disabled}
+                  inputMode="decimal"
+                  onChange={(e) => setQuantity(e.target.value)}
+                  placeholder="0.0000"
+                  value={quantity}
+                />
               </label>
-              {formError ? <p className="text-sm text-destructive" role="alert">{formError}</p> : null}
+              {formError ? (
+                <p className="text-sm text-destructive" role="alert">
+                  {formError}
+                </p>
+              ) : null}
               {retryTransfer ? (
-                <Button disabled={mutation.isPending} onClick={() => mutation.mutate(retryTransfer)} type="button" variant="outline">
+                <Button
+                  disabled={mutation.isPending}
+                  onClick={() => mutation.mutate(retryTransfer)}
+                  type="button"
+                  variant="outline"
+                >
                   Retry transfer
                 </Button>
               ) : null}
@@ -154,17 +198,35 @@ export function Component() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>Transfer history</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>Transfer history</CardTitle>
+          </CardHeader>
           <CardContent>
-            {transfers.isLoading ? <p className="text-muted-foreground">Loading transfers…</p> : null}
-            {transfers.isError ? <p className="text-destructive" role="alert">{readError(transfers.error)}</p> : null}
-            {transfers.data?.length === 0 ? <p className="text-muted-foreground">No transfers yet.</p> : null}
+            {transfers.isLoading ? (
+              <p className="text-muted-foreground">Loading transfers…</p>
+            ) : null}
+            {transfers.isError ? (
+              <p className="text-destructive" role="alert">
+                {readError(transfers.error)}
+              </p>
+            ) : null}
+            {transfers.data?.length === 0 ? (
+              <p className="text-muted-foreground">No transfers yet.</p>
+            ) : null}
             <ul className="divide-y">
               {transfers.data?.map((transfer) => (
                 <li className="py-3" key={transfer.id}>
-                  <p className="font-medium">{names.products.get(transfer.productId) ?? transfer.productId} · {transfer.quantity}</p>
+                  <p className="font-medium">
+                    {names.products.get(transfer.productId) ??
+                      transfer.productId}{" "}
+                    · {transfer.quantity}
+                  </p>
                   <p className="text-sm text-muted-foreground">
-                    {names.warehouses.get(transfer.sourceWarehouseId) ?? transfer.sourceWarehouseId} → {names.warehouses.get(transfer.destinationWarehouseId) ?? transfer.destinationWarehouseId}
+                    {names.warehouses.get(transfer.sourceWarehouseId) ??
+                      transfer.sourceWarehouseId}{" "}
+                    →{" "}
+                    {names.warehouses.get(transfer.destinationWarehouseId) ??
+                      transfer.destinationWarehouseId}
                   </p>
                 </li>
               ))}
