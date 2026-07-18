@@ -111,6 +111,9 @@ export function Topbar() {
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuLabel>
               {user?.displayName ?? "Account"}
+              <span className="block text-xs font-normal text-muted-foreground">
+                {user?.workspace.name ?? "Workspace"}
+              </span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem>Profile</DropdownMenuItem>

@@ -18,3 +18,13 @@ Content-Type: application/json
 ### Current user (replace only in local scratch requests)
 GET {{InventoryFlow.Api_HostAddress}}/api/auth/me
 Authorization: Bearer {{$processEnv ACCESS_TOKEN}}
+
+### Registration returns the server-resolved personal workspace
+POST {{InventoryFlow.Api_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "displayName": "Workspace Owner",
+  "email": "owner@example.test",
+  "password": "Password!12345"
+}

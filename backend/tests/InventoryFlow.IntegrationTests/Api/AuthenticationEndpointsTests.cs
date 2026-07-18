@@ -4,6 +4,9 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using InventoryFlow.Application.Features.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
+using InventoryFlow.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace InventoryFlow.IntegrationTests.Api;
 
@@ -15,6 +18,7 @@ public sealed class AuthenticationEndpointsTests : IClassFixture<AuthenticatedAp
     private const string RefreshCookieName = "inventory_flow_refresh";
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly HttpClient _client;
+    private readonly AuthenticatedApiFixture _fixture;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AuthenticationEndpointsTests"/> class.
@@ -22,6 +26,7 @@ public sealed class AuthenticationEndpointsTests : IClassFixture<AuthenticatedAp
     /// <param name="fixture">The SQL Server-backed API fixture.</param>
     public AuthenticationEndpointsTests(AuthenticatedApiFixture fixture)
     {
+        _fixture = fixture;
         _client = fixture.Factory.CreateClient(new WebApplicationFactoryClientOptions
         {
             HandleCookies = false,
@@ -66,6 +71,20 @@ public sealed class AuthenticationEndpointsTests : IClassFixture<AuthenticatedAp
         var user = await response.Content.ReadFromJsonAsync<AuthenticatedUser>(JsonOptions);
         Assert.NotNull(user);
         Assert.Equal(session.User.Email, user.Email);
+        Assert.Equal(session.User.Workspace, user.Workspace);
+    }
+
+    /// <summary>Provisions exactly one Owner workspace with registration.</summary>
+    [Fact]
+    public async Task Register_ProvisionsOwnerWorkspace()
+    {
+        using var registration = await RegisterAsync();
+        var session = await ReadSessionAsync(registration);
+        await using var scope = _fixture.Factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        Assert.Equal(1, await dbContext.Workspaces.CountAsync(workspace => workspace.Id == session.User.Workspace.Id));
+        Assert.Equal(1, await dbContext.WorkspaceMembers.CountAsync(member => member.UserId == session.User.Id && member.WorkspaceId == session.User.Workspace.Id));
     }
 
     /// <summary>

@@ -1,7 +1,10 @@
 namespace InventoryFlow.Application.Features.Authentication;
 
+/// <summary>Represents the authenticated workspace exposed to clients.</summary>
+public sealed record AuthenticatedWorkspace(Guid Id, string Name);
+
 /// <summary>Represents the authenticated user exposed to clients.</summary>
-public sealed record AuthenticatedUser(Guid Id, string Email, string DisplayName);
+public sealed record AuthenticatedUser(Guid Id, string Email, string DisplayName, AuthenticatedWorkspace Workspace);
 
 /// <summary>Represents a browser session response.</summary>
 public sealed record AuthenticationResponse(string AccessToken, DateTimeOffset AccessTokenExpiresAtUtc, AuthenticatedUser User);

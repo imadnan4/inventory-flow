@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Options;
 using InventoryFlow.Infrastructure.Persistence;
+using InventoryFlow.Infrastructure.Tenancy;
+using InventoryFlow.Application.Common.Tenancy;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -61,7 +63,9 @@ public static class InfrastructureServiceCollectionExtensions
                     NameClaimType = "display_name"
                 };
             });
+        services.AddHttpContextAccessor();
         services.AddSingleton(TimeProvider.System);
+        services.AddScoped<ICurrentWorkspace, CurrentWorkspaceResolver>();
         services.AddScoped<JwtAccessTokenIssuer>();
         services.AddSingleton<RefreshTokenGenerator>();
         services.AddScoped<IAuthenticationService, IdentityAuthenticationService>();

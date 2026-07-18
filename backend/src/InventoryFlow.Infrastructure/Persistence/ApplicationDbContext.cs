@@ -20,6 +20,12 @@ public sealed class ApplicationDbContext(
     /// </summary>
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
+    /// <summary>Gets workspaces.</summary>
+    public DbSet<Workspace> Workspaces => Set<Workspace>();
+
+    /// <summary>Gets workspace memberships.</summary>
+    public DbSet<WorkspaceMember> WorkspaceMembers => Set<WorkspaceMember>();
+
     /// <summary>
     /// Gets the shared data-protection keys used by Identity token providers.
     /// </summary>
