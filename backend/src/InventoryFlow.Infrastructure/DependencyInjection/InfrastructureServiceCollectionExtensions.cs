@@ -1,11 +1,13 @@
 using System.Text;
 using InventoryFlow.Application.Features.Authentication;
+using InventoryFlow.Application.Features.Products;
 using InventoryFlow.Infrastructure.Authentication;
 using InventoryFlow.Infrastructure.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Options;
 using InventoryFlow.Infrastructure.Persistence;
+using InventoryFlow.Infrastructure.Products;
 using InventoryFlow.Infrastructure.Tenancy;
 using InventoryFlow.Application.Common.Tenancy;
 using Microsoft.AspNetCore.DataProtection;
@@ -69,6 +71,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<JwtAccessTokenIssuer>();
         services.AddSingleton<RefreshTokenGenerator>();
         services.AddScoped<IAuthenticationService, IdentityAuthenticationService>();
+        services.AddScoped<IProductCatalog, EfProductCatalog>();
 
         services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(
             connectionString,

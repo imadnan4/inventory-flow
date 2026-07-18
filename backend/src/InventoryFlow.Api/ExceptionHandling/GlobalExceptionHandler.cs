@@ -1,5 +1,6 @@
 using FluentValidation;
 using InventoryFlow.Application.Features.Authentication;
+using InventoryFlow.Application.Features.Products;
 using InventoryFlow.Domain.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
@@ -35,6 +36,7 @@ public sealed class GlobalExceptionHandler(
             ValidationException => StatusCodes.Status400BadRequest,
             DomainException => StatusCodes.Status400BadRequest,
             AuthenticationException => StatusCodes.Status401Unauthorized,
+            ProductSkuConflictException => StatusCodes.Status409Conflict,
             _ => StatusCodes.Status500InternalServerError,
         };
 
@@ -56,10 +58,13 @@ public sealed class GlobalExceptionHandler(
         var problemDetails = new ProblemDetails
         {
             Status = statusCode,
-            Title = statusCode switch { StatusCodes.Status400BadRequest => "A business rule was violated.", StatusCodes.Status401Unauthorized => "Authentication failed.", _ => "An unexpected error occurred." },
-            Type = statusCode == StatusCodes.Status400BadRequest
-                ? "https://tools.ietf.org/html/rfc9110#section-15.5.1"
-                : "https://tools.ietf.org/html/rfc9110#section-15.6.1",
+            Title = statusCode switch { StatusCodes.Status400BadRequest => "A business rule was violated.", StatusCodes.Status401Unauthorized => "Authentication failed.", StatusCodes.Status409Conflict => "A product with this SKU already exists.", _ => "An unexpected error occurred." },
+            Type = statusCode switch
+            {
+                StatusCodes.Status400BadRequest => "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+                StatusCodes.Status409Conflict => "https://tools.ietf.org/html/rfc9110#section-15.5.10",
+                _ => "https://tools.ietf.org/html/rfc9110#section-15.6.1",
+            },
             Detail = exception is DomainException ? exception.Message : null,
         };
 

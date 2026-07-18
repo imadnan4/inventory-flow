@@ -1,8 +1,10 @@
 import { create } from "zustand"
+
 import type {
   AuthenticationResponse,
   AuthenticatedUser,
 } from "@/features/auth/types"
+import { queryClient } from "@/lib/query-client"
 
 type AuthState = {
   accessToken: string | null
@@ -17,7 +19,19 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isRestoring: true,
   setSession: (session) =>
-    set({ accessToken: session.accessToken, user: session.user }),
-  clearSession: () => set({ accessToken: null, user: null }),
+    set((state) => {
+      if (
+        state.user &&
+        (state.user.id !== session.user.id ||
+          state.user.workspace.id !== session.user.workspace.id)
+      )
+        queryClient.clear()
+
+      return { accessToken: session.accessToken, user: session.user }
+    }),
+  clearSession: () => {
+    queryClient.clear()
+    set({ accessToken: null, user: null })
+  },
   finishRestoring: () => set({ isRestoring: false }),
 }))

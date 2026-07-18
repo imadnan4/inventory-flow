@@ -26,6 +26,9 @@ public sealed class ApplicationDbContext(
     /// <summary>Gets workspace memberships.</summary>
     public DbSet<WorkspaceMember> WorkspaceMembers => Set<WorkspaceMember>();
 
+    /// <summary>Gets workspace-scoped products.</summary>
+    public DbSet<Product> Products => Set<Product>();
+
     /// <summary>
     /// Gets the shared data-protection keys used by Identity token providers.
     /// </summary>

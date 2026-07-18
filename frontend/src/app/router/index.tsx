@@ -45,7 +45,10 @@ export const router = createBrowserRouter([
             path: "dashboard",
             lazy: () => import("@/features/dashboard/pages/DashboardPage"),
           },
-          { path: "products", element: placeholderPage("Products") },
+          {
+            path: "products",
+            lazy: () => import("@/features/products/pages/ProductsPage"),
+          },
           { path: "categories", element: placeholderPage("Categories") },
           { path: "inventory", element: placeholderPage("Inventory") },
           { path: "suppliers", element: placeholderPage("Suppliers") },

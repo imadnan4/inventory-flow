@@ -1,6 +1,7 @@
 using System.Text.Json;
 using InventoryFlow.Api.ExceptionHandling;
 using InventoryFlow.Domain.Exceptions;
+using InventoryFlow.Application.Features.Products;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -40,5 +41,15 @@ public sealed class GlobalExceptionHandlerTests
             httpContext.Response.Body);
         Assert.NotNull(problemDetails);
         Assert.Equal("Product SKU must be unique.", problemDetails.Detail);
+    }
+    /// <summary>Produces a conflict response for duplicate SKU exceptions.</summary>
+    [Fact]
+    public async Task TryHandleAsync_WithProductSkuConflict_WritesConflictProblemDetails()
+    {
+        var httpContext = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+        var handler = new GlobalExceptionHandler(NullLogger<GlobalExceptionHandler>.Instance);
+        var handled = await handler.TryHandleAsync(httpContext, new ProductSkuConflictException(), CancellationToken.None);
+        Assert.True(handled);
+        Assert.Equal(StatusCodes.Status409Conflict, httpContext.Response.StatusCode);
     }
 }
