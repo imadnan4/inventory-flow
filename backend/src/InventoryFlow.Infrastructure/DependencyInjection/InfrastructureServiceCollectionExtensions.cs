@@ -3,6 +3,8 @@ using InventoryFlow.Application.Features.Authentication;
 using InventoryFlow.Application.Features.Products;
 using InventoryFlow.Infrastructure.Authentication;
 using InventoryFlow.Infrastructure.Identity;
+using InventoryFlow.Application.Features.Warehouses;
+using InventoryFlow.Infrastructure.Warehouses;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Options;
@@ -72,6 +74,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<RefreshTokenGenerator>();
         services.AddScoped<IAuthenticationService, IdentityAuthenticationService>();
         services.AddScoped<IProductCatalog, EfProductCatalog>();
+        services.AddScoped<IWarehouseCatalog, EfWarehouseCatalog>();
 
         services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(
             connectionString,

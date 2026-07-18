@@ -19,6 +19,7 @@ public sealed class ApplicationDbContext(
     /// Gets the issued refresh tokens.
     /// </summary>
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<Warehouse> Warehouses => Set<Warehouse>();
 
     /// <summary>Gets workspaces.</summary>
     public DbSet<Workspace> Workspaces => Set<Workspace>();

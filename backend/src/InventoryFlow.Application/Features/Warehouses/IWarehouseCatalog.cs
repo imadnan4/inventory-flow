@@ -1,0 +1,2 @@
+using InventoryFlow.Domain.Entities;
+namespace InventoryFlow.Application.Features.Warehouses; public interface IWarehouseCatalog { Task<Warehouse> CreateAsync(Warehouse x, CancellationToken c); Task<IReadOnlyList<Warehouse>> ListActiveAsync(Guid w, CancellationToken c); Task<Warehouse?> FindAsync(Guid w, Guid id, CancellationToken c); Task SaveChangesAsync(CancellationToken c); } public sealed class WarehouseNameConflictException : Exception { public WarehouseNameConflictException() : base("A warehouse with this name already exists in the workspace.") { } }
