@@ -2,6 +2,7 @@ using FluentValidation;
 using InventoryFlow.Application.Features.Authentication;
 using InventoryFlow.Application.Features.Inventory;
 using InventoryFlow.Application.Features.Products;
+using InventoryFlow.Application.Features.Suppliers;
 using InventoryFlow.Application.Features.Warehouses;
 using InventoryFlow.Domain.Exceptions;
 using InventoryFlow.Domain.Entities;
@@ -40,6 +41,7 @@ public sealed class GlobalExceptionHandler(
             DomainException => StatusCodes.Status400BadRequest,
             AuthenticationException => StatusCodes.Status401Unauthorized,
             ProductSkuConflictException => StatusCodes.Status409Conflict,
+            SupplierNameConflictException => StatusCodes.Status409Conflict,
             WarehouseNameConflictException => StatusCodes.Status409Conflict,
             InsufficientInventoryException => StatusCodes.Status409Conflict,
             InventoryArchiveConflictException => StatusCodes.Status409Conflict,

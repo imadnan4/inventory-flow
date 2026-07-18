@@ -14,6 +14,8 @@ using InventoryFlow.Infrastructure.Persistence;
 using InventoryFlow.Infrastructure.Products;
 using InventoryFlow.Infrastructure.Tenancy;
 using InventoryFlow.Application.Common.Tenancy;
+using InventoryFlow.Application.Features.Suppliers;
+using InventoryFlow.Infrastructure.Suppliers;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -77,6 +79,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IAuthenticationService, IdentityAuthenticationService>();
         services.AddScoped<IProductCatalog, EfProductCatalog>();
         services.AddScoped<IWarehouseCatalog, EfWarehouseCatalog>();
+        services.AddScoped<ISupplierCatalog, EfSupplierCatalog>();
         services.AddScoped<IInventoryLedger, EfInventoryLedger>();
 
         services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(

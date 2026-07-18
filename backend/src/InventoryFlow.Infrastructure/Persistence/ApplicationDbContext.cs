@@ -21,6 +21,9 @@ public sealed class ApplicationDbContext(
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Warehouse> Warehouses => Set<Warehouse>();
 
+    /// <summary>Gets workspace-scoped suppliers.</summary>
+    public DbSet<Supplier> Suppliers => Set<Supplier>();
+
     /// <summary>Gets immutable inventory ledger movements.</summary>
     public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>();
 
