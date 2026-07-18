@@ -21,6 +21,12 @@ public sealed class ApplicationDbContext(
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Warehouse> Warehouses => Set<Warehouse>();
 
+    /// <summary>Gets immutable inventory ledger movements.</summary>
+    public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>();
+
+    /// <summary>Gets current inventory balances.</summary>
+    public DbSet<InventoryBalance> InventoryBalances => Set<InventoryBalance>();
+
     /// <summary>Gets workspaces.</summary>
     public DbSet<Workspace> Workspaces => Set<Workspace>();
 

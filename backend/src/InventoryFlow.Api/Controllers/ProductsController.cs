@@ -35,11 +35,12 @@ public sealed class ProductsController(ISender sender, ICurrentWorkspace current
         return Ok(await sender.Send(new ListProductsQuery(workspace.Id), cancellationToken));
     }
 
-    /// <summary>Idempotently archives a product in the current workspace.</summary>
+    /// <summary>Idempotently archives a product with no stock on hand.</summary>
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Archive(Guid id, CancellationToken cancellationToken)
     {
         var workspace = await currentWorkspace.GetAsync(cancellationToken);

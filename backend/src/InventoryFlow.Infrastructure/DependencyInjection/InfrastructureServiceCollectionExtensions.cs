@@ -5,6 +5,8 @@ using InventoryFlow.Infrastructure.Authentication;
 using InventoryFlow.Infrastructure.Identity;
 using InventoryFlow.Application.Features.Warehouses;
 using InventoryFlow.Infrastructure.Warehouses;
+using InventoryFlow.Application.Features.Inventory;
+using InventoryFlow.Infrastructure.Inventory;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Options;
@@ -75,6 +77,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IAuthenticationService, IdentityAuthenticationService>();
         services.AddScoped<IProductCatalog, EfProductCatalog>();
         services.AddScoped<IWarehouseCatalog, EfWarehouseCatalog>();
+        services.AddScoped<IInventoryLedger, EfInventoryLedger>();
 
         services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(
             connectionString,

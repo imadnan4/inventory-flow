@@ -24,12 +24,6 @@ public sealed class ListProductsHandler(IProductCatalog catalog) : IRequestHandl
 public sealed class ArchiveProductHandler(IProductCatalog catalog, TimeProvider timeProvider) : IRequestHandler<ArchiveProductCommand, bool>
 {
     /// <inheritdoc />
-    public async Task<bool> Handle(ArchiveProductCommand request, CancellationToken cancellationToken)
-    {
-        var product = await catalog.FindAsync(request.WorkspaceId, request.ProductId, cancellationToken);
-        if (product is null) return false;
-        product.Archive(timeProvider.GetUtcNow());
-        await catalog.SaveChangesAsync(cancellationToken);
-        return true;
-    }
+    public Task<bool> Handle(ArchiveProductCommand request, CancellationToken cancellationToken) =>
+        catalog.ArchiveAsync(request.WorkspaceId, request.ProductId, timeProvider.GetUtcNow(), cancellationToken);
 }

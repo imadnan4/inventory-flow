@@ -11,6 +11,8 @@ public interface IProductCatalog
     Task<IReadOnlyList<Product>> ListActiveAsync(Guid workspaceId, CancellationToken cancellationToken);
     /// <summary>Finds a product only within its workspace.</summary>
     Task<Product?> FindAsync(Guid workspaceId, Guid productId, CancellationToken cancellationToken);
+    /// <summary>Archives a product only when no nonzero workspace balance references it.</summary>
+    Task<bool> ArchiveAsync(Guid workspaceId, Guid productId, DateTimeOffset archivedAtUtc, CancellationToken cancellationToken);
     /// <summary>Persists pending changes.</summary>
     Task SaveChangesAsync(CancellationToken cancellationToken);
 }

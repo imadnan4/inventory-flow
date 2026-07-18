@@ -1,8 +1,10 @@
 using FluentValidation;
 using InventoryFlow.Application.Features.Authentication;
+using InventoryFlow.Application.Features.Inventory;
 using InventoryFlow.Application.Features.Products;
 using InventoryFlow.Application.Features.Warehouses;
 using InventoryFlow.Domain.Exceptions;
+using InventoryFlow.Domain.Entities;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -39,6 +41,8 @@ public sealed class GlobalExceptionHandler(
             AuthenticationException => StatusCodes.Status401Unauthorized,
             ProductSkuConflictException => StatusCodes.Status409Conflict,
             WarehouseNameConflictException => StatusCodes.Status409Conflict,
+            InsufficientInventoryException => StatusCodes.Status409Conflict,
+            InventoryArchiveConflictException => StatusCodes.Status409Conflict,
             _ => StatusCodes.Status500InternalServerError,
         };
 
@@ -60,14 +64,16 @@ public sealed class GlobalExceptionHandler(
         var problemDetails = new ProblemDetails
         {
             Status = statusCode,
-            Title = statusCode switch { StatusCodes.Status400BadRequest => "A business rule was violated.", StatusCodes.Status401Unauthorized => "Authentication failed.", StatusCodes.Status409Conflict => "A conflicting catalog value already exists.", _ => "An unexpected error occurred." },
+            Title = statusCode switch { StatusCodes.Status400BadRequest => "A business rule was violated.", StatusCodes.Status401Unauthorized => "Authentication failed.", StatusCodes.Status409Conflict => "A conflicting value or insufficient inventory exists.", _ => "An unexpected error occurred." },
             Type = statusCode switch
             {
                 StatusCodes.Status400BadRequest => "https://tools.ietf.org/html/rfc9110#section-15.5.1",
                 StatusCodes.Status409Conflict => "https://tools.ietf.org/html/rfc9110#section-15.5.10",
                 _ => "https://tools.ietf.org/html/rfc9110#section-15.6.1",
             },
-            Detail = exception is DomainException ? exception.Message : null,
+            Detail = exception is DomainException or InsufficientInventoryException or InventoryArchiveConflictException
+                ? exception.Message
+                : null,
         };
 
         httpContext.Response.StatusCode = statusCode;
