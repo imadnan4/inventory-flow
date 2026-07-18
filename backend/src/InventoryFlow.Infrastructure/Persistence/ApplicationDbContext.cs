@@ -30,6 +30,9 @@ public sealed class ApplicationDbContext(
     /// <summary>Gets immutable supplier-linked purchase receipts.</summary>
     public DbSet<PurchaseReceipt> PurchaseReceipts => Set<PurchaseReceipt>();
 
+    /// <summary>Gets immutable sales fulfillments.</summary>
+    public DbSet<SalesFulfillment> SalesFulfillments => Set<SalesFulfillment>();
+
     /// <summary>Gets current inventory balances.</summary>
     public DbSet<InventoryBalance> InventoryBalances => Set<InventoryBalance>();
 
