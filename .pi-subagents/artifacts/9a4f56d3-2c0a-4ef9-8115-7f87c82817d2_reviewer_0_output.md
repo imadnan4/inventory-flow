@@ -1,6 +1,0 @@
-## Review
-- Correct: Atomic posting is implemented in one serializable transaction and one `SaveChangesAsync`: receipt, movement, and balance share the same `ApplicationDbContext` in `backend/src/InventoryFlow.Infrastructure/Purchases/EfPurchaseReceiptService.cs:18-52`.
-- Correct: Replay is workspace-scoped and durable via lookup plus unique `(WorkspaceId, IdempotencyKey)` index; the linked movement uses the generated receipt ID rather than the browser key (`EfPurchaseReceiptService.cs:22-27,38-50`, `PurchaseReceiptConfiguration.cs:16-17`).
-- Correct: Supplier, product, and warehouse are verified workspace-local and active before persistence (`EfPurchaseReceiptService.cs:30-35`, `InventoryLedgerWriter.cs:21-25`).
-- Correct: Migration has required FK, precision, and unique indexes (`20260718132213_AddPurchaseReceipts.cs:14-93`) and applied successfully in SQL-backed integration tests.
-- Note: **High (test coverage)** — `backend/tests/InventoryFlow.IntegrationTests/Api/PurchaseReceiptEndpointsTests.cs:28-80` covers successful/replay and concurrent replay only. It lacks endpoint tests for unauthenticated POST/GET, cross-workspace IDs and list isolation, archived supplier/product/warehouse rejection, invalid request side-effect absence, and receipt-history ordering. These are the critical tenant/archive/error contracts.

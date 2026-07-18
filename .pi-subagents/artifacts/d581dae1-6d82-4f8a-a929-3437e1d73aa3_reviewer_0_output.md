@@ -1,5 +1,0 @@
-## Review
-- Correct: CI uses least-privilege `contents: read`, checkout v5, pinned Bun 1.3.14, frozen installs, and backend restore/build/test/format commands (`.github/workflows/ci.yml:8-47`). Docker images build successfully; Compose migration dependency and SQL health gate work in a live smoke test.
-- Blocker: **High** — Backend API and migration images run as root. `backend/Dockerfile:19-28` has no `USER` directive; built-image inspection reports `Config.User=""`, which defaults to root. Run the final API as the image’s non-root `app` user (and use a dedicated non-root user for the migrator where feasible).
-- Note: No `plan.md` or lowercase `progress.md` exists at the requested paths; `.project/PROGRESS.md` was available but is stale/unrelated.
-- Note: Secrets are not committed and are required by Compose (`.env.example:1-3`, `docker-compose.yml:7,25-26`). Dev same-origin proxy/cookie behavior is coherent: `/api` Vite proxy, credentialed Axios, and `Secure=false` only in Development (`frontend/vite.config.ts:14-18`, `frontend/src/lib/api-client.ts:5-13`, `backend/src/InventoryFlow.Api/Controllers/AuthController.cs:75-77`).

@@ -1,1 +1,0 @@
-High: `frontend/Dockerfile:11-14` final Nginx image has no `USER`; image inspection confirms it runs as root. This fails the non-root container baseline.
