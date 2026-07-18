@@ -33,6 +33,9 @@ public sealed class ApplicationDbContext(
     /// <summary>Gets immutable sales fulfillments.</summary>
     public DbSet<SalesFulfillment> SalesFulfillments => Set<SalesFulfillment>();
 
+    /// <summary>Gets immutable warehouse transfers.</summary>
+    public DbSet<WarehouseTransfer> WarehouseTransfers => Set<WarehouseTransfer>();
+
     /// <summary>Gets current inventory balances.</summary>
     public DbSet<InventoryBalance> InventoryBalances => Set<InventoryBalance>();
 

@@ -29,6 +29,7 @@ const navigationItems: NavigationItem[] = [
   { label: "Warehouses", to: "/warehouses", icon: WarehouseIcon },
   { label: "Purchases", to: "/purchases", icon: ShoppingCart01Icon },
   { label: "Sales", to: "/sales", icon: ShoppingCart01Icon },
+  { label: "Transfers", to: "/transfers", icon: DeliveryTruckIcon },
   { label: "Reports", to: "/reports", icon: DashboardSquare01Icon },
   { label: "Users", to: "/users", icon: UserGroupIcon },
   { label: "Settings", to: "/settings", icon: Settings01Icon },
