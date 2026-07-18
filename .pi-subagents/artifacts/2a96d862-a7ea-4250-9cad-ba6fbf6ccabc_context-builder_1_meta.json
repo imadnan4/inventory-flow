@@ -1,0 +1,116 @@
+{
+  "runId": "2a96d862-a7ea-4250-9cad-ba6fbf6ccabc",
+  "agent": "context-builder",
+  "task": "Build implementation context for the first workspace-scoped inventory movement slice after Products and Warehouses. Do not edit. Propose the smallest correct scope, domain/persistence/API/frontend architecture, ledger/balance invariants, concurrency/idempotency design, and an implementation-ready meta-prompt.\n\n---\n**Output:**\nWrite your findings to exactly this path: /home/adnan/Projects/Inventory-Flow/.pi-subagents/artifacts/outputs/2a96d862-a7ea-4250-9cad-ba6fbf6ccabc/parallel-0/1-context-builder/context.md\nThis path is authoritative for this run.\nIgnore any other output filename or output path mentioned elsewhere, including output destinations in the base agent prompt, system prompt, or task instructions.\n\n## Acceptance Contract\nAcceptance level: attested\nCompletion is not accepted from prose alone. End with a structured acceptance report.\n\nCriteria:\n- criterion-1: Return concrete findings with file paths and severity when applicable\n\nRequired evidence: review-findings, residual-risks\n\nFinish with a fenced JSON block tagged `acceptance-report` in this shape:\nUse empty arrays when no items apply; array fields contain strings unless object entries are shown.\n`criteriaSatisfied[].status` must be exactly one of: satisfied, not-satisfied, not-applicable.\n`commandsRun[].result` must be exactly one of: passed, failed, not-run.\n`manualNotes` and `notes` are optional strings; an empty string means no note and does not satisfy `manual-notes` evidence.\n```acceptance-report\n{\n  \"criteriaSatisfied\": [\n    {\n      \"id\": \"criterion-1\",\n      \"status\": \"satisfied\",\n      \"evidence\": \"specific proof\"\n    }\n  ],\n  \"changedFiles\": [\n    \"src/file.ts\"\n  ],\n  \"testsAddedOrUpdated\": [\n    \"test/file.test.ts\"\n  ],\n  \"commandsRun\": [\n    {\n      \"command\": \"command\",\n      \"result\": \"passed\",\n      \"summary\": \"short result\"\n    }\n  ],\n  \"validationOutput\": [\n    \"validation output or concise summary\"\n  ],\n  \"residualRisks\": [\n    \"none\"\n  ],\n  \"noStagedFiles\": true,\n  \"diffSummary\": \"short description of the diff\",\n  \"reviewFindings\": [\n    \"blocker: file.ts:12 - issue found, or no blockers\"\n  ],\n  \"manualNotes\": \"anything else the parent should know\"\n}\n```",
+  "exitCode": 0,
+  "model": "openai-codex/gpt-5.6-terra:medium",
+  "attemptedModels": [
+    "openai-codex/gpt-5.6-terra:medium"
+  ],
+  "modelAttempts": [
+    {
+      "model": "openai-codex/gpt-5.6-terra:medium",
+      "success": true,
+      "exitCode": 0,
+      "usage": {
+        "input": 65463,
+        "output": 7655,
+        "cacheRead": 295936,
+        "cacheWrite": 0,
+        "cost": 0.3524665,
+        "turns": 8
+      }
+    }
+  ],
+  "acceptance": {
+    "status": "attested",
+    "explicit": false,
+    "effectiveAcceptance": {
+      "level": "attested",
+      "explicit": false,
+      "inferredReason": [
+        "read-only/reviewer-style agent"
+      ],
+      "criteria": [
+        {
+          "id": "criterion-1",
+          "must": "Return concrete findings with file paths and severity when applicable",
+          "evidence": [
+            "review-findings",
+            "residual-risks"
+          ],
+          "severity": "required"
+        }
+      ],
+      "evidence": [
+        "review-findings",
+        "residual-risks"
+      ],
+      "verify": [],
+      "stopRules": []
+    },
+    "inferredReason": [
+      "read-only/reviewer-style agent"
+    ],
+    "criteria": [
+      {
+        "id": "criterion-1",
+        "must": "Return concrete findings with file paths and severity when applicable",
+        "evidence": [
+          "review-findings",
+          "residual-risks"
+        ],
+        "severity": "required"
+      }
+    ],
+    "runtimeChecks": [],
+    "verifyRuns": [],
+    "childReport": {
+      "criteriaSatisfied": [
+        {
+          "id": "criterion-1",
+          "status": "satisfied",
+          "evidence": "Concrete findings, severity, file paths/line references, implementation architecture, invariants, concurrency plan, and meta-prompt are documented above."
+        }
+      ],
+      "changedFiles": [
+        ".pi-subagents/artifacts/outputs/2a96d862-a7ea-4250-9cad-ba6fbf6ccabc/parallel-0/1-context-builder/context.md"
+      ],
+      "testsAddedOrUpdated": [],
+      "commandsRun": [
+        {
+          "command": "git status --short and targeted nl/read inspections",
+          "result": "passed",
+          "summary": "Source worktree has no tracked changes; only runtime-owned untracked .pi-subagents/ is present."
+        },
+        {
+          "command": "dotnet test / frontend checks",
+          "result": "not-run",
+          "summary": "Context-only task; no implementation was made."
+        }
+      ],
+      "validationOutput": [
+        "Reviewed backend domain/application/infrastructure/API/test paths and frontend routing/catalog patterns.",
+        "Reviewed Microsoft Learn EF Core transaction/resiliency/efficient-update and SQL Server locking guidance."
+      ],
+      "residualRisks": [
+        "Archive-versus-movement locking and nonzero balance archive semantics must be implemented/tested to avoid stranded stock.",
+        "Quantity precision 18,4 is a documented proposal pending UOM requirements.",
+        "SQL Server/Testcontainers concurrency validation remains unrun until implementation."
+      ],
+      "noStagedFiles": true,
+      "diffSummary": "No product source edits; wrote the requested context handoff artifact only.",
+      "reviewFindings": [
+        "high: ProductHandlers.cs:38-50 and warehouse equivalent archive without stock awareness; movement slice must block archive with nonzero balance and coordinate races.",
+        "high: InfrastructureServiceCollectionExtensions.cs:79-81 enables retries; transaction must execute through EF execution strategy and use idempotency.",
+        "high: ApplicationDbContext.cs:21-31 has no stock balance/projection; naive read-modify-write would oversell.",
+        "medium: frontend/src/features/warehouses/pages/WarehousesPage.tsx:96-112 duplicates name input; do not copy into new Inventory UI.",
+        "medium: GlobalExceptionHandler.cs:63 gives misleading title for movement conflicts."
+      ],
+      "manualNotes": "This handoff recommends adjustment-only Receipt/Issue as the smallest correct movement slice and intentionally excludes transfers."
+    }
+  },
+  "transcriptPath": "/home/adnan/Projects/Inventory-Flow/.pi-subagents/artifacts/2a96d862-a7ea-4250-9cad-ba6fbf6ccabc_context-builder_1_transcript.jsonl",
+  "skills": [],
+  "timestamp": 1784376589164
+}

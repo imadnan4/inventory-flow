@@ -1,0 +1,94 @@
+# Research: Initial inventory movement ledger for ASP.NET Core / EF Core
+
+## Summary
+Use an append-only `InventoryMovement` as the audit source of truth, and maintain a per-stock-key `StockBalance` projection in the **same database transaction** for fast operational reads. Make the stock key explicitly include tenant/owner, product, warehouse and (when enabled) location; use fixed-precision base-unit quantities; and make every write retry-safe through a persisted idempotency key plus database uniqueness.
+
+For an initial B2B release, deny negative *on-hand* stock by default and make an explicit, authorized adjustment/reversal event the correction mechanism. A warehouse-only model is a legitimate scope reduction, but it must not imply that stock at different warehouses (or owners) is fungible.
+
+## Findings
+
+1. **Use immutable movement facts, not edits to prior movements.** Create one `InventoryMovement` row per signed leg (`QuantityDelta`): receipt `+`, issue `-`, adjustment `+/-`, and a transfer as two legs with the same `OperationId` (source `-`, destination `+`). Persist `MovementId` (client-generated GUID), `OperationId`, `MovementType`, stock-key fields, base-UoM quantity, `OccurredAtUtc`, `PostedAtUtc`, actor, reason/reference, and optional reversal relationship. Correct a mistake with a compensating movement, never an update/delete. This preserves a coherent history and makes transfer conservation testable. SQL Server 2022+ append-only ledger tables are a possible optional hardening: they permit only inserts and provide tamper evidence; they are **not** required to get application-level immutability and their integrity guarantee requires digest handling/verification. [SQL Server Ledger overview](https://learn.microsoft.com/en-us/sql/relational-databases/security/ledger/ledger-overview?view=sql-server-ver17)
+
+2. **Model custody/ownership in the stock key; do not keep only a product total.** Recommended initial key: `(TenantId, InventoryOwnerId, ProductId, WarehouseId, LocationId?, InventoryStatus?)`. `InventoryOwnerId` should be a required legal/business owner (often the tenant at first); `WarehouseId` required; `LocationId` either (a) not present in v1, or (b) required for all location-controlled warehouses—avoid a nullable location that ambiguously means both “whole warehouse” and “unknown bin.” Require source and destination keys for internal transfer legs, and enforce that referenced locations belong to their warehouse and tenant. This mirrors established inventory transaction practice: Dynamics inventory dimensions include site, warehouse, location, status and owner, and Oracle’s on-hand data is addressable by control level/location and can be summed by matching transaction quantities. [Dynamics inventory transaction details](https://learn.microsoft.com/en-us/dynamics365/supply-chain/inventory/inventory-transactions-details) [Oracle on-hand quantity detail](https://docs.oracle.com/en/cloud/saas/supply-chain-and-manufacturing/25c/oedsc/invonhandquantitiesdetail-6062.html)
+
+3. **Store quantities as `decimal` in one defined base UoM and explicitly set precision/scale.** Do not use `float`/`double` for stock. Choose the base UoM per product (for example, pieces or kilograms), validate that requested quantities are a valid increment for that UoM, and use the same precision on movement and balance fields. A pragmatic starting point is `decimal(19,6)` only if six fractional places and 13 integral digits meet business bounds; otherwise derive `(p,s)` from maximum stock and smallest permitted increment before migration. In EF Core configure `.HasPrecision(19, 6)` (or `[Precision(19,6)]`) rather than relying on defaults. EF Core notes that it does not validate precision/scale before writing; SQL Server `decimal`/`numeric` are fixed precision/scale, with maximum precision 38. [EF Core entity properties](https://learn.microsoft.com/en-us/ef/core/modeling/entity-properties) [SQL Server decimal/numeric](https://learn.microsoft.com/en-us/sql/t-sql/data-types/decimal-and-numeric-transact-sql?view=sql-server-ver17)
+
+4. **Use a transactional balance projection, while retaining ledger derivability.** `InventoryMovement` is authoritative; `StockBalance` is a materialized projection keyed by the full stock key, holding `OnHandQuantity` (and later `ReservedQuantity` / `AvailableQuantity`). In one short transaction: validate/idempotency-claim, insert all movement legs, increment/decrement every affected balance, and save the completed idempotency result. A single EF Core `SaveChanges` is transactional for relational providers, but use an explicit transaction when the workflow spans multiple saves/commands; do not write ledger and balance in separate commits. Rebuild/reconcile balances by summing movements asynchronously or on demand for audit, rather than calculating every availability check from the entire ledger. Oracle documents both durable material transaction records and an on-hand record whose transaction quantities can be summed at a matching control level/location—supporting this source-plus-projection split. [EF Core transactions](https://learn.microsoft.com/en-us/ef/core/saving/transactions) [Oracle material transactions](https://docs.oracle.com/en/cloud/saas/supply-chain-and-manufacturing/26b/oedsc/invmaterialtxns-17544.html) [Oracle on-hand quantity detail](https://docs.oracle.com/en/cloud/saas/supply-chain-and-manufacturing/25c/oedsc/invonhandquantitiesdetail-6062.html)
+
+5. **Protect the balance row against lost updates and make the full unit of work retryable.** Add `rowversion`/`[Timestamp]` to `StockBalance` on SQL Server and catch `DbUpdateConcurrencyException`: reload, re-evaluate the policy against the current balance, then retry the *same idempotent operation* with bounded retries. EF adds the token to the update predicate and raises the exception when zero rows are affected; `rowversion` changes automatically on update. A higher isolation level/locking can also protect a read-then-write check, but can block competing writers, so keep transactions short. For a SQL conditional update, require `OnHandQuantity + @delta >= 0` in the `UPDATE` predicate and treat zero affected rows as insufficient stock/concurrency conflict. [EF Core concurrency conflicts](https://learn.microsoft.com/en-us/ef/core/saving/concurrency)
+
+6. **Idempotency must be persistent and database-enforced, not an in-memory cache.** Accept an `Idempotency-Key` or command `OperationId`; validate it; persist `(TenantId, ClientOrActorId, IdempotencyKey)` under a unique index with a request fingerprint, operation/movement IDs, status and stored response. On a duplicate with the same fingerprint, return the original outcome; reject a reused key with a different payload. Insert/claim this record in the same transaction as movements and balances. EF Core supports unique and composite indexes; importantly, its retry guidance warns a disconnect during commit leaves the outcome unknown and a blind retry can duplicate inserts/corrupt data. The IETF idempotency-key draft (work in progress, not an RFC) likewise recommends a validated fixed format and a composite key including client-specific attributes. [EF Core indexes](https://learn.microsoft.com/en-us/ef/core/modeling/indexes) [EF Core connection resiliency](https://learn.microsoft.com/en-us/ef/core/miscellaneous/connection-resiliency) [IETF Idempotency-Key draft](https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-07)
+
+7. **Set a conscious negative-stock policy; default to deny at the stock-key level.** For initial B2B physical inventory, reject an issue/transfer source leg that would make `OnHandQuantity < 0`; distinguish this from future reservations (`Available = OnHand - Reserved`) so a reservation does not silently alter on-hand. Allow only explicit, permissioned adjustment/reversal reasons to repair counts, with reason/reference and actor recorded. This avoids “temporary” negative balances becoming untraceable discrepancies. If the business needs sales-before-receipt, model it as a backorder/commitment (or an explicit approved negative policy per product/warehouse), not an accidental bypass. A database `CHECK (OnHandQuantity >= 0)` is useful as a final invariant on the projection but cannot alone prevent race conditions; pair it with the transactional/concurrency approach above.
+
+## Recommended v1 schema/invariants
+
+* `InventoryMovement`: immutable application row; GUID PK; `OperationId`; signed `QuantityDelta decimal(p,s)` (non-zero); `BaseUomId`; full stock-key columns; type/reason/reference; occurred/posted timestamps; actor; `ReversesMovementId` where relevant. Restrict database principal/application permissions so the runtime can insert but not update/delete movement rows; corrections are compensations.
+* `StockBalance`: unique composite key for the full stock key; `OnHandQuantity decimal(p,s) NOT NULL`; SQL Server `rowversion`; optionally a `CHECK (OnHandQuantity >= 0)` when negative stock is prohibited. Never use a product-wide balance to authorize a warehouse issue.
+* `IdempotencyRecord`: unique `(TenantId, ClientId, IdempotencyKey)` and request fingerprint; created/complete state, canonical response/operation reference. An EF Core unique composite index is the collision arbiter, not process memory. [EF Core indexes](https://learn.microsoft.com/en-us/ef/core/modeling/indexes)
+* Transfer invariant: exactly one negative and one positive leg of the same magnitude/base UoM per `OperationId`, with differing source/destination keys; create both along with both balance updates in one transaction.
+* Validation: quantity non-zero, base-UoM compatible, bounded precision/scale, valid tenant ownership/location hierarchy, authorized type/reason, and no negative source balance under default policy.
+
+## Scope tradeoffs
+
+| Decision | Initial recommendation | Tradeoff / escalation trigger |
+|---|---|---|
+| Ledger vs balance | Both: immutable ledger + transactional `StockBalance` | Ledger-only is simpler but stock checks and lists become costly; projection introduces reconciliation work. |
+| Warehouse vs bin location | Require warehouse; omit bins entirely until WMS needs them | Faster v1. Add locations before pick/putaway, mixed-bin stock, or bin-level cycle counts; do not introduce them as ambiguous nullable data. |
+| Ownership | Require tenant/owner now | If no consignment/3PL stock exists, owner can equal tenant; retain the column so future stock is not commingled. |
+| Concurrency | Optimistic `rowversion`, short retry loop, unique keys | High-contention “hot” SKUs may need conditional SQL updates or short higher-isolation transactions; locking reduces throughput. |
+| Negative stock | Deny by default | Permitting it can support operational latency but requires explicit debt/reconciliation policy and reporting; never enable implicitly. |
+| SQL Server ledger feature | Defer unless tamper-evident audit is a contractual requirement | SQL Server 2022+/Azure SQL feature adds operational digest/verification responsibility. Application append-only permissions/events are sufficient for normal auditability. |
+
+## Sources
+
+- Kept: [EF Core — Handling Concurrency Conflicts](https://learn.microsoft.com/en-us/ef/core/saving/concurrency) — primary guidance on concurrency tokens, `rowversion`, retries, and isolation tradeoffs.
+- Kept: [EF Core — Transactions](https://learn.microsoft.com/en-us/ef/core/saving/transactions) — primary guarantee and limitations for atomic `SaveChanges` / explicit transactions.
+- Kept: [EF Core — Connection Resiliency](https://learn.microsoft.com/en-us/ef/core/miscellaneous/connection-resiliency) — primary warning about unknown commit outcome and retriable transaction unit.
+- Kept: [EF Core — Entity Properties](https://learn.microsoft.com/en-us/ef/core/modeling/entity-properties) and [Indexes](https://learn.microsoft.com/en-us/ef/core/modeling/indexes) — precision/scale and unique composite-index configuration.
+- Kept: [SQL Server — decimal/numeric](https://learn.microsoft.com/en-us/sql/t-sql/data-types/decimal-and-numeric-transact-sql?view=sql-server-ver17) and [Ledger overview](https://learn.microsoft.com/en-us/sql/relational-databases/security/ledger/ledger-overview?view=sql-server-ver17) — provider behavior for exact numbers and optional append-only/tamper-evident tables.
+- Kept: [Dynamics inventory transaction details](https://learn.microsoft.com/en-us/dynamics365/supply-chain/inventory/inventory-transactions-details) and [Oracle on-hand quantity detail](https://docs.oracle.com/en/cloud/saas/supply-chain-and-manufacturing/25c/oedsc/invonhandquantitiesdetail-6062.html) — primary enterprise inventory examples of dimensions, ownership and transaction/on-hand representations.
+- Kept with caveat: [IETF Idempotency-Key draft](https://datatracker.ietf.org/doc/html/draft-ietf-httpapi-idempotency-key-header-07) — useful protocol guidance, but explicitly a work-in-progress Internet-Draft, not a final RFC.
+- Dropped: ASP.NET Core cache documentation — a distributed/in-memory cache is not a durable idempotency authority and does not establish a stock-write invariant.
+
+## Gaps
+
+* No product-specific maximum stock, smallest UoM increment, legal retention period, or SQL provider/version was supplied; these determine the final `(precision, scale)`, retention/partitioning plan, and availability of SQL Server ledger tables.
+* The correct definition of `InventoryOwnerId` (tenant, legal entity, consignor) and whether reservations, lots/serials, quality status, and bins are needed are business-domain decisions. Confirm them before freezing the stock-key unique index; changing it later requires projection rebuild/migration.
+* Negative stock is policy rather than a universal platform rule. Confirm whether backorders, emergency shipments, or offline scanner workflows need an approved exception path.
+
+```acceptance-report
+{
+  "criteriaSatisfied": [
+    {
+      "id": "criterion-1",
+      "status": "satisfied",
+      "evidence": "Concrete findings and scope tradeoffs were written to .pi-subagents/artifacts/outputs/d119b658-8bed-47d3-af81-42c6d51d2648/parallel-0/2-researcher/research.md; recommendations cite official Microsoft, SQL Server, Oracle, Dynamics, and IETF primary sources."
+    }
+  ],
+  "changedFiles": [
+    ".pi-subagents/artifacts/outputs/d119b658-8bed-47d3-af81-42c6d51d2648/parallel-0/2-researcher/research.md"
+  ],
+  "testsAddedOrUpdated": [],
+  "commandsRun": [
+    {
+      "command": "Focused web research: Microsoft EF Core/SQL Server, Dynamics, Oracle SCM, IETF Idempotency-Key",
+      "result": "passed",
+      "summary": "Primary-source findings collected and cited."
+    }
+  ],
+  "validationOutput": [
+    "Research artifact contains sourced recommendations for immutable events, ownership/location keys, decimal precision, transactional projection, concurrency, idempotency, and negative-stock policy."
+  ],
+  "residualRisks": [
+    "Final precision/scale and stock-key dimensions require product/UoM, ownership, provider, and WMS scope decisions.",
+    "Negative-stock exceptions and retention/tamper-evidence requirements remain business-policy decisions."
+  ],
+  "noStagedFiles": true,
+  "diffSummary": "Added the required research artifact only; no application code was edited.",
+  "reviewFindings": [
+    "info: .pi-subagents/artifacts/outputs/d119b658-8bed-47d3-af81-42c6d51d2648/parallel-0/2-researcher/research.md - no code reviewed or changed; findings are advisory research."
+  ],
+  "manualNotes": "The IETF Idempotency-Key reference is explicitly identified as an Internet-Draft rather than a final RFC."
+}
+```

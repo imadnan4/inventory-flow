@@ -1,0 +1,129 @@
+{
+  "runId": "5b34b403-f9cb-4b77-9e1b-32f10ce7d234",
+  "agent": "reviewer",
+  "task": "Final release review of the uncommitted workspace-scoped warehouse catalog. Verify tenant scoping, immutable archive behavior, DB-derived duplicate 409 including concurrent path, domain/API Testcontainers coverage, and React workspace cache key/use. Do not edit. Return only Critical/High evidence-backed findings or APPROVED.\n\n## Acceptance Contract\nAcceptance level: attested\nCompletion is not accepted from prose alone. End with a structured acceptance report.\n\nCriteria:\n- criterion-1: Return concrete findings with file paths and severity when applicable\n\nRequired evidence: review-findings, residual-risks\n\nFinish with a fenced JSON block tagged `acceptance-report` in this shape:\nUse empty arrays when no items apply; array fields contain strings unless object entries are shown.\n`criteriaSatisfied[].status` must be exactly one of: satisfied, not-satisfied, not-applicable.\n`commandsRun[].result` must be exactly one of: passed, failed, not-run.\n`manualNotes` and `notes` are optional strings; an empty string means no note and does not satisfy `manual-notes` evidence.\n```acceptance-report\n{\n  \"criteriaSatisfied\": [\n    {\n      \"id\": \"criterion-1\",\n      \"status\": \"satisfied\",\n      \"evidence\": \"specific proof\"\n    }\n  ],\n  \"changedFiles\": [\n    \"src/file.ts\"\n  ],\n  \"testsAddedOrUpdated\": [\n    \"test/file.test.ts\"\n  ],\n  \"commandsRun\": [\n    {\n      \"command\": \"command\",\n      \"result\": \"passed\",\n      \"summary\": \"short result\"\n    }\n  ],\n  \"validationOutput\": [\n    \"validation output or concise summary\"\n  ],\n  \"residualRisks\": [\n    \"none\"\n  ],\n  \"noStagedFiles\": true,\n  \"diffSummary\": \"short description of the diff\",\n  \"reviewFindings\": [\n    \"blocker: file.ts:12 - issue found, or no blockers\"\n  ],\n  \"manualNotes\": \"anything else the parent should know\"\n}\n```",
+  "exitCode": 0,
+  "model": "openai-codex/gpt-5.6-terra:high",
+  "attemptedModels": [
+    "openai-codex/gpt-5.6-terra:high"
+  ],
+  "modelAttempts": [
+    {
+      "model": "openai-codex/gpt-5.6-terra:high",
+      "success": true,
+      "exitCode": 0,
+      "usage": {
+        "input": 30975,
+        "output": 3869,
+        "cacheRead": 112640,
+        "cacheWrite": 0,
+        "cost": 0.16363250000000001,
+        "turns": 9
+      }
+    }
+  ],
+  "acceptance": {
+    "status": "attested",
+    "explicit": false,
+    "effectiveAcceptance": {
+      "level": "attested",
+      "explicit": false,
+      "inferredReason": [
+        "read-only/reviewer-style agent"
+      ],
+      "criteria": [
+        {
+          "id": "criterion-1",
+          "must": "Return concrete findings with file paths and severity when applicable",
+          "evidence": [
+            "review-findings",
+            "residual-risks"
+          ],
+          "severity": "required"
+        }
+      ],
+      "evidence": [
+        "review-findings",
+        "residual-risks"
+      ],
+      "verify": [],
+      "stopRules": []
+    },
+    "inferredReason": [
+      "read-only/reviewer-style agent"
+    ],
+    "criteria": [
+      {
+        "id": "criterion-1",
+        "must": "Return concrete findings with file paths and severity when applicable",
+        "evidence": [
+          "review-findings",
+          "residual-risks"
+        ],
+        "severity": "required"
+      }
+    ],
+    "runtimeChecks": [],
+    "verifyRuns": [],
+    "childReport": {
+      "criteriaSatisfied": [
+        {
+          "id": "criterion-1",
+          "status": "satisfied",
+          "evidence": "No Critical/High findings. SQL Server Testcontainers API tests cover tenant isolation, archival name reservation, and concurrent duplicate 409; React cache key includes user and workspace IDs."
+        }
+      ],
+      "changedFiles": [
+        "backend/src/InventoryFlow.Api/Controllers/WarehousesController.cs",
+        "backend/src/InventoryFlow.Api/ExceptionHandling/GlobalExceptionHandler.cs",
+        "backend/src/InventoryFlow.Application/Features/Warehouses/IWarehouseCatalog.cs",
+        "backend/src/InventoryFlow.Application/Features/Warehouses/WarehouseHandlers.cs",
+        "backend/src/InventoryFlow.Application/Features/Warehouses/WarehouseModels.cs",
+        "backend/src/InventoryFlow.Application/Features/Warehouses/WarehouseValidators.cs",
+        "backend/src/InventoryFlow.Domain/Entities/Warehouse.cs",
+        "backend/src/InventoryFlow.Infrastructure/Warehouses/EfWarehouseCatalog.cs",
+        "backend/src/InventoryFlow.Infrastructure/Persistence/Configurations/WarehouseConfiguration.cs",
+        "backend/src/InventoryFlow.Infrastructure/Persistence/Migrations/20260718115041_AddWarehouses.cs",
+        "frontend/src/features/warehouses/pages/WarehousesPage.tsx"
+      ],
+      "testsAddedOrUpdated": [
+        "backend/tests/InventoryFlow.UnitTests/Domain/WarehouseTests.cs",
+        "backend/tests/InventoryFlow.IntegrationTests/Api/WarehouseEndpointsTests.cs"
+      ],
+      "commandsRun": [
+        {
+          "command": "dotnet test backend/InventoryFlow.sln --no-restore",
+          "result": "passed",
+          "summary": "38 tests passed: 19 unit and 19 SQL Server Testcontainers integration tests."
+        },
+        {
+          "command": "cd frontend && npm run typecheck && npm run lint",
+          "result": "passed",
+          "summary": "TypeScript typecheck and ESLint completed successfully."
+        },
+        {
+          "command": "git diff --check && git diff --cached --check",
+          "result": "passed",
+          "summary": "No whitespace errors; no staged files."
+        }
+      ],
+      "validationOutput": [
+        "Warehouse API Testcontainers coverage passed, including cross-workspace archive rejection and concurrent canonical-name requests returning one 201 and one 409.",
+        "Warehouse archive is idempotent and archived names remain protected by the workspace/name unique index.",
+        "Frontend warehouse query key is scoped as ['warehouses', userId, workspaceId]."
+      ],
+      "residualRisks": [
+        "No Critical/High residual risks identified."
+      ],
+      "noStagedFiles": true,
+      "diffSummary": "Adds workspace-scoped warehouse catalog domain, persistence migration and unique index, API endpoints, conflict mapping, Testcontainers/domain tests, and workspace-keyed React catalog UI.",
+      "reviewFindings": [
+        "No Critical/High findings."
+      ],
+      "manualNotes": ""
+    }
+  },
+  "transcriptPath": "/home/adnan/Projects/Inventory-Flow/.pi-subagents/artifacts/5b34b403-f9cb-4b77-9e1b-32f10ce7d234_reviewer_transcript.jsonl",
+  "skills": [],
+  "timestamp": 1784376070938
+}

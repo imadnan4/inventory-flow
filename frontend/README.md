@@ -18,7 +18,7 @@ bun run build
 
 ## Configuration
 
-Copy `.env.example` to `.env` and set `VITE_API_BASE_URL` to the API origin. The default is `http://localhost:5000`.
+Copy `.env.example` to `.env`. The default `/` uses the Vite development proxy to `http://localhost:5255`; set an absolute API origin only when needed.
 
 ## Structure
 

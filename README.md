@@ -61,50 +61,35 @@ frontend/
 
 ### Prerequisites
 
-- [.NET SDK 9.0.316](https://dotnet.microsoft.com/download/dotnet/9.0), pinned in `global.json`
-- [Bun 1.3+](https://bun.sh/)
-- SQL Server 2022+ (local, containerized, or hosted)
+- Docker with Docker Compose
+- Or, for running services directly: [.NET SDK 9.0.316](https://dotnet.microsoft.com/download/dotnet/9.0), [Bun 1.3+](https://bun.sh/), and SQL Server 2022+
 
-### 1. Configure the database
+### Docker Compose (recommended)
 
-Set the connection string in your shell before running migrations or database-backed features:
+```bash
+cp .env.example .env
+# Edit .env: provide a strong SQL Server SA password and a random JWT signing key (at least 32 bytes).
+docker compose up --build
+```
+
+Compose is a local-development stack only. SQL Server must become healthy before its one-shot `migrate` service applies EF migrations; the API and web services then start. Open `http://localhost:8080`; the SPA proxies `/api` to the API and uses SPA fallback routing. The API runs in `Development` so refresh cookies remain valid over local HTTP. Stop it with `docker compose down` (add `-v` to remove local database data).
+
+No credentials or JWT signing keys are committed. Do not use this HTTP Compose configuration for production.
+
+### Run services directly
+
+Set configuration outside tracked files, then apply migrations:
 
 ```bash
 export ConnectionStrings__InventoryFlowDatabase='Server=localhost,1433;Database=InventoryFlow;User Id=sa;Password=<strong-password>;TrustServerCertificate=True'
-```
-
-> [!IMPORTANT]
-> Do not commit real credentials. Environment files and local agent state are ignored by Git.
-
-### 2. Install dependencies and apply migrations
-
-```bash
+export Jwt__SigningKey='<at-least-32-random-bytes>'
 cd backend
 dotnet tool restore
 dotnet restore
 dotnet ef database update --project src/InventoryFlow.Infrastructure --startup-project src/InventoryFlow.Api
-cd ../frontend
-bun install
-cp .env.example .env
 ```
 
-### 3. Run the application
-
-Use two terminals from the repository root:
-
-```bash
-# API
-cd backend
-dotnet run --project src/InventoryFlow.Api
-```
-
-```bash
-# Web client
-cd frontend
-bun run dev
-```
-
-The API health endpoint is available at `http://localhost:5255/health` when using the default launch profile. The frontend runs on `http://localhost:5173`.
+In separate terminals, run `dotnet run --project backend/src/InventoryFlow.Api` and `cd frontend && bun install --frozen-lockfile && bun run dev`. The Vite server proxies `/api` to `http://localhost:5255`; its frontend is at `http://localhost:5173`.
 
 ## Quality checks
 
@@ -130,10 +115,10 @@ bunx prettier --check .
 - Backend work uses `feature/backend/<feature-name>`.
 - Fixes use `bugfix/frontend/<description>` or `bugfix/backend/<description>`.
 
-Every change is committed on a scoped branch, validated locally, reviewed in a pull request into `develop`, and promoted to `main` for release.
+Every change is committed on a scoped branch, validated locally, reviewed in a pull request into `develop`, and promoted to `main` for release. GitHub Actions validates pull requests and `main` with backend restore/build/test/format and frontend frozen Bun install/typecheck/lint/build.
 
 ## Current scope
 
 Implemented foundations include the API pipeline, global problem-details handling, health checks, SQL Server Identity schema, refresh-token domain model and migration, and the responsive dashboard shell.
 
-Upcoming vertical slices cover authentication (JWT and token rotation), role and permission enforcement, catalog management, inventory movements, purchase and sales orders, reporting, Redis caching, Hangfire jobs, Docker Compose, and CI/CD.
+Upcoming vertical slices cover role and permission enforcement, Redis caching, and Hangfire jobs. This repository intentionally contains no CD, registry publishing, production TLS, production secrets, or API startup migrations.

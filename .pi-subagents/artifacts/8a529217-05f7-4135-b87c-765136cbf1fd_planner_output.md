@@ -1,0 +1,69 @@
+# Implementation Plan
+
+## Goal
+Deliver a workspace-scoped immutable Receipt/Issue inventory ledger with transactionally maintained non-negative on-hand balances and an authenticated Inventory UI.
+
+## Tasks
+1. **Add inventory domain model and invariants**
+   - File: `backend/src/InventoryFlow.Domain/Entities/InventoryMovement.cs`, `InventoryBalance.cs`, and movement-kind enum
+   - Changes: Model immutable movement fields (workspace/product/warehouse IDs, receipt/issue, positive decimal quantity, derived signed quantity, UTC occurrence time, note, idempotency key/fingerprint) and a balance projection. Enforce required IDs, UTC values, `decimal(18,4)` scale, and no negative balance.
+   - Acceptance: Domain tests cover invalid input, signed quantities, immutable movement behavior, and negative-balance rejection.
+
+2. **Create persistence mappings and migration**
+   - File: `backend/src/InventoryFlow.Infrastructure/Persistence/ApplicationDbContext.cs`; `Configurations/InventoryMovementConfiguration.cs`; `Configurations/InventoryBalanceConfiguration.cs`; new EF migration and `ApplicationDbContextModelSnapshot.cs`
+   - Changes: Add DbSets, decimal precision, tenant/product/warehouse FKs, immutable/restrict delete behavior, unique `(WorkspaceId, IdempotencyKey)` and `(WorkspaceId, ProductId, WarehouseId)` indexes, and list indexes.
+   - Acceptance: Migration applies against SQL Server; schema enforces decimal precision and uniqueness.
+
+3. **Implement transactional ledger service**
+   - File: `backend/src/InventoryFlow.Application/Features/Inventory/*`; `backend/src/InventoryFlow.Infrastructure/Inventory/EfInventoryLedger.cs`; DI registration
+   - Changes: Add command/query models, validators, handlers, interface, and EF implementation. Use a SQL Server serializable transaction inside `CreateExecutionStrategy().ExecuteAsync`; lock balance/product/warehouse keys, conditionally update Issues only when quantity is sufficient, append movement and balance change atomically, and handle idempotency replay/mismatch safely.
+   - Acceptance: Receipt creates a movement/balance; Issue cannot oversell; duplicate same key returns original result; altered payload for same key conflicts.
+
+4. **Protect catalog archival from live inventory**
+   - File: product and warehouse handlers/catalog implementations under `backend/src/InventoryFlow.Application/Features/{Products,Warehouses}` and Infrastructure counterparts
+   - Changes: Reject archive when a scoped non-zero balance exists, with compatible transaction/locking behavior so archive cannot race a new movement.
+   - Acceptance: Product and warehouse archive return 409 for non-zero on-hand inventory; archived sources reject new movements.
+
+5. **Expose authenticated inventory API and error contracts**
+   - File: `backend/src/InventoryFlow.Api/Controllers/InventoryController.cs`; `ExceptionHandling/GlobalExceptionHandler.cs`
+   - Changes: Add authorized movement POST requiring `Idempotency-Key`, balances GET, and bounded recent-movements GET if rendered. Resolve workspace only through `ICurrentWorkspace`; map insufficient stock, idempotency mismatch, and archive conflicts to accurate RFC 7807 responses.
+   - Acceptance: Cross-workspace IDs receive 404; malformed/invalid quantity receives 400; oversell and conflict cases receive 409.
+
+6. **Add Inventory frontend slice**
+   - File: `frontend/src/features/inventory/{types.ts,inventory-api.ts,inventory-schema.ts,pages/InventoryPage.tsx}`; `frontend/src/app/router/index.tsx`
+   - Changes: Replace inventory placeholder with lazy page, workspace/user-isolated query keys, active product/warehouse selectors, decimal-string validation, receipt/issue submission with retry-stable `crypto.randomUUID()` idempotency key, error handling, balances, and recent movements when API supports it.
+   - Acceptance: Authenticated user can post an adjustment and see refreshed balances; no workspace ID is sent by the browser.
+
+7. **Add focused SQL-backed concurrency and lifecycle tests**
+   - File: new/updated unit tests under `backend/tests/InventoryFlow.UnitTests/Domain`; `backend/tests/InventoryFlow.IntegrationTests/Api/InventoryMovementEndpointsTests.cs`; product/warehouse endpoint tests
+   - Changes: Test receipt/issue/oversell, exact-once replay and mismatch, concurrent duplicate and competing Issues, tenant isolation, archive blocking, migration mapping, and unauthenticated behavior using Testcontainers SQL Server.
+   - Acceptance: Concurrent Issues never make a balance negative; exactly one movement is created per idempotency command.
+
+8. **Run release validation and independent review**
+   - File: no source file
+   - Changes: Run backend build/tests/format and frontend typecheck/lint/build/Prettier; perform a read-only review focused on locking, retries, tenant filtering, archive races, and browser retry behavior.
+   - Acceptance: All checks pass and no blocker remains.
+
+## Files to Modify
+- `backend/src/InventoryFlow.Domain/Entities/*` - ledger and balance model
+- `backend/src/InventoryFlow.Application/Features/Inventory/*` - commands, queries, validation, handlers
+- `backend/src/InventoryFlow.Infrastructure/{Inventory,Persistence}/*` - transaction implementation, mappings, migration
+- `backend/src/InventoryFlow.Api/{Controllers,ExceptionHandling}/*` - HTTP contract/errors
+- Existing product/warehouse feature handlers - archive balance protection
+- `frontend/src/app/router/index.tsx` and `frontend/src/features/inventory/*` - inventory UI
+- Backend unit/integration test projects - invariant and SQL concurrency coverage
+
+## New Files
+- `InventoryMovement.cs`, `InventoryBalance.cs`, inventory application contracts, EF ledger service/configurations/migration, inventory controller, frontend inventory feature, and inventory tests.
+
+## Dependencies
+- Tasks 1–2 precede Task 3.
+- Task 3 must be complete before Tasks 4–6 and integration tests.
+- Task 7 validates Tasks 3–6.
+- Task 8 follows all implementation work.
+
+## Risks
+- Archive-versus-movement locking is critical: naive independent checks can strand inventory or bypass the non-zero archive rule.
+- Retry-on-failure requires the explicit transaction to execute through EF’s execution strategy.
+- Do not use read-modify-write balance updates; use locks/conditional SQL updates to prevent overselling.
+- Keep `decimal(18,4)` and adjustment-only scope; transfers, UOM, costs, orders, and reversals require separate design.

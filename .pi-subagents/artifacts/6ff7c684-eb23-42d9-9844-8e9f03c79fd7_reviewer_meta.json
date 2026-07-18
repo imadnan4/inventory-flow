@@ -1,0 +1,137 @@
+{
+  "runId": "6ff7c684-eb23-42d9-9844-8e9f03c79fd7",
+  "agent": "reviewer",
+  "task": "Final go/no-go delivery baseline review after frontend non-root fix. Verify all images non-root, Compose/proxy/migration/health, CI/secrets/docs. Do not edit. Reply APPROVED or Critical/High only.\n\n## Acceptance Contract\nAcceptance level: attested\nCompletion is not accepted from prose alone. End with a structured acceptance report.\n\nCriteria:\n- criterion-1: Return concrete findings with file paths and severity when applicable\n\nRequired evidence: review-findings, residual-risks\n\nFinish with a fenced JSON block tagged `acceptance-report` in this shape:\nUse empty arrays when no items apply; array fields contain strings unless object entries are shown.\n`criteriaSatisfied[].status` must be exactly one of: satisfied, not-satisfied, not-applicable.\n`commandsRun[].result` must be exactly one of: passed, failed, not-run.\n`manualNotes` and `notes` are optional strings; an empty string means no note and does not satisfy `manual-notes` evidence.\n```acceptance-report\n{\n  \"criteriaSatisfied\": [\n    {\n      \"id\": \"criterion-1\",\n      \"status\": \"satisfied\",\n      \"evidence\": \"specific proof\"\n    }\n  ],\n  \"changedFiles\": [\n    \"src/file.ts\"\n  ],\n  \"testsAddedOrUpdated\": [\n    \"test/file.test.ts\"\n  ],\n  \"commandsRun\": [\n    {\n      \"command\": \"command\",\n      \"result\": \"passed\",\n      \"summary\": \"short result\"\n    }\n  ],\n  \"validationOutput\": [\n    \"validation output or concise summary\"\n  ],\n  \"residualRisks\": [\n    \"none\"\n  ],\n  \"noStagedFiles\": true,\n  \"diffSummary\": \"short description of the diff\",\n  \"reviewFindings\": [\n    \"blocker: file.ts:12 - issue found, or no blockers\"\n  ],\n  \"manualNotes\": \"anything else the parent should know\"\n}\n```",
+  "exitCode": 0,
+  "model": "openai-codex/gpt-5.6-terra:high",
+  "attemptedModels": [
+    "openai-codex/gpt-5.6-terra:high"
+  ],
+  "modelAttempts": [
+    {
+      "model": "openai-codex/gpt-5.6-terra:high",
+      "success": true,
+      "exitCode": 0,
+      "usage": {
+        "input": 34777,
+        "output": 3185,
+        "cacheRead": 84992,
+        "cacheWrite": 0,
+        "cost": 0.1559655,
+        "turns": 6
+      }
+    }
+  ],
+  "acceptance": {
+    "status": "attested",
+    "explicit": false,
+    "effectiveAcceptance": {
+      "level": "attested",
+      "explicit": false,
+      "inferredReason": [
+        "read-only/reviewer-style agent"
+      ],
+      "criteria": [
+        {
+          "id": "criterion-1",
+          "must": "Return concrete findings with file paths and severity when applicable",
+          "evidence": [
+            "review-findings",
+            "residual-risks"
+          ],
+          "severity": "required"
+        }
+      ],
+      "evidence": [
+        "review-findings",
+        "residual-risks"
+      ],
+      "verify": [],
+      "stopRules": []
+    },
+    "inferredReason": [
+      "read-only/reviewer-style agent"
+    ],
+    "criteria": [
+      {
+        "id": "criterion-1",
+        "must": "Return concrete findings with file paths and severity when applicable",
+        "evidence": [
+          "review-findings",
+          "residual-risks"
+        ],
+        "severity": "required"
+      }
+    ],
+    "runtimeChecks": [],
+    "verifyRuns": [],
+    "childReport": {
+      "criteriaSatisfied": [
+        {
+          "id": "criterion-1",
+          "status": "satisfied",
+          "evidence": "No Critical/High findings. Docker image inspection confirms api/migrate run as inventoryflow, web as UID 101, and SQL as mssql."
+        }
+      ],
+      "changedFiles": [
+        "README.md",
+        "frontend/.env.example",
+        "frontend/README.md",
+        "frontend/src/app/config/environment.ts",
+        "frontend/vite.config.ts",
+        ".env.example",
+        ".github/workflows/ci.yml",
+        "backend/.dockerignore",
+        "backend/Dockerfile",
+        "docker-compose.yml",
+        "frontend/.dockerignore",
+        "frontend/Dockerfile",
+        "frontend/nginx.conf"
+      ],
+      "testsAddedOrUpdated": [],
+      "commandsRun": [
+        {
+          "command": "docker compose config",
+          "result": "passed",
+          "summary": "Compose configuration resolves required secrets, migration gate, proxy services, and SQL health dependency."
+        },
+        {
+          "command": "docker compose build --pull api migrate web",
+          "result": "passed",
+          "summary": "All application images built successfully."
+        },
+        {
+          "command": "dotnet test InventoryFlow.sln --no-restore && dotnet format InventoryFlow.sln --verify-no-changes --no-restore",
+          "result": "passed",
+          "summary": "78 backend tests passed; formatting verification passed."
+        },
+        {
+          "command": "bun run typecheck && bun run lint && bun run build && bunx prettier --check .",
+          "result": "passed",
+          "summary": "Frontend typecheck, lint, production build, and formatting passed."
+        },
+        {
+          "command": "docker image inspect inventory-flow-api inventory-flow-migrate inventory-flow-web mssql",
+          "result": "passed",
+          "summary": "Runtime users: inventoryflow, inventoryflow, UID 101, and mssql respectively."
+        }
+      ],
+      "validationOutput": [
+        "Compose uses SQL health gating and a one-shot successful migration prerequisite before API/web startup.",
+        "Nginx proxies /api to api:8080 and provides SPA fallback.",
+        "CI runs backend restore/build/test/format and frontend frozen install/typecheck/lint/build.",
+        "No committed credentials found; required Compose secrets are supplied from ignored .env."
+      ],
+      "residualRisks": [],
+      "noStagedFiles": true,
+      "diffSummary": "Delivery baseline adds non-root container images, Compose migration/proxy setup, CI, secret templates, and operating documentation.",
+      "reviewFindings": [
+        "no Critical/High findings"
+      ],
+      "manualNotes": ""
+    }
+  },
+  "transcriptPath": "/home/adnan/Projects/Inventory-Flow/.pi-subagents/artifacts/6ff7c684-eb23-42d9-9844-8e9f03c79fd7_reviewer_transcript.jsonl",
+  "skills": [],
+  "timestamp": 1784397637422
+}

@@ -1,0 +1,2 @@
+## Review
+- **Blocker (High):** Required race-to-409 Testcontainers coverage is absent. `backend/tests/InventoryFlow.IntegrationTests/Api/ProductEndpointsTests.cs:21-36` performs duplicate creation sequentially, so `EfProductCatalog` exits at its pre-check (`backend/src/InventoryFlow.Infrastructure/Products/EfProductCatalog.cs:15-16`). It never exercises the unique-index race handler at `:23-25`. Add concurrent same-workspace canonical-SKU POSTs and assert exactly one `201`, one `409`, and one persisted row.

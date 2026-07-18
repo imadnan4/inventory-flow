@@ -1,0 +1,113 @@
+{
+  "runId": "242aa27f-70a4-4c09-821b-4f4fbbd0d552",
+  "agent": "context-builder",
+  "task": "Build an implementation-ready transfer-slice context/meta-prompt from current code. Do not edit. Include paired immutable movements, deterministic locking, transaction/retry constraints, migration, frontend and test contract.\n\n---\n**Output:**\nWrite your findings to exactly this path: /home/adnan/Projects/Inventory-Flow/.pi-subagents/artifacts/outputs/242aa27f-70a4-4c09-821b-4f4fbbd0d552/parallel-0/1-context-builder/context.md\nThis path is authoritative for this run.\nIgnore any other output filename or output path mentioned elsewhere, including output destinations in the base agent prompt, system prompt, or task instructions.\n\n## Acceptance Contract\nAcceptance level: attested\nCompletion is not accepted from prose alone. End with a structured acceptance report.\n\nCriteria:\n- criterion-1: Return concrete findings with file paths and severity when applicable\n\nRequired evidence: review-findings, residual-risks\n\nFinish with a fenced JSON block tagged `acceptance-report` in this shape:\nUse empty arrays when no items apply; array fields contain strings unless object entries are shown.\n`criteriaSatisfied[].status` must be exactly one of: satisfied, not-satisfied, not-applicable.\n`commandsRun[].result` must be exactly one of: passed, failed, not-run.\n`manualNotes` and `notes` are optional strings; an empty string means no note and does not satisfy `manual-notes` evidence.\n```acceptance-report\n{\n  \"criteriaSatisfied\": [\n    {\n      \"id\": \"criterion-1\",\n      \"status\": \"satisfied\",\n      \"evidence\": \"specific proof\"\n    }\n  ],\n  \"changedFiles\": [\n    \"src/file.ts\"\n  ],\n  \"testsAddedOrUpdated\": [\n    \"test/file.test.ts\"\n  ],\n  \"commandsRun\": [\n    {\n      \"command\": \"command\",\n      \"result\": \"passed\",\n      \"summary\": \"short result\"\n    }\n  ],\n  \"validationOutput\": [\n    \"validation output or concise summary\"\n  ],\n  \"residualRisks\": [\n    \"none\"\n  ],\n  \"noStagedFiles\": true,\n  \"diffSummary\": \"short description of the diff\",\n  \"reviewFindings\": [\n    \"blocker: file.ts:12 - issue found, or no blockers\"\n  ],\n  \"manualNotes\": \"anything else the parent should know\"\n}\n```",
+  "exitCode": 0,
+  "model": "openai-codex/gpt-5.6-terra:medium",
+  "attemptedModels": [
+    "openai-codex/gpt-5.6-terra:medium"
+  ],
+  "modelAttempts": [
+    {
+      "model": "openai-codex/gpt-5.6-terra:medium",
+      "success": true,
+      "exitCode": 0,
+      "usage": {
+        "input": 74396,
+        "output": 6146,
+        "cacheRead": 381440,
+        "cacheWrite": 0,
+        "cost": 0.37354000000000004,
+        "turns": 10
+      }
+    }
+  ],
+  "acceptance": {
+    "status": "attested",
+    "explicit": false,
+    "effectiveAcceptance": {
+      "level": "attested",
+      "explicit": false,
+      "inferredReason": [
+        "read-only/reviewer-style agent"
+      ],
+      "criteria": [
+        {
+          "id": "criterion-1",
+          "must": "Return concrete findings with file paths and severity when applicable",
+          "evidence": [
+            "review-findings",
+            "residual-risks"
+          ],
+          "severity": "required"
+        }
+      ],
+      "evidence": [
+        "review-findings",
+        "residual-risks"
+      ],
+      "verify": [],
+      "stopRules": []
+    },
+    "inferredReason": [
+      "read-only/reviewer-style agent"
+    ],
+    "criteria": [
+      {
+        "id": "criterion-1",
+        "must": "Return concrete findings with file paths and severity when applicable",
+        "evidence": [
+          "review-findings",
+          "residual-risks"
+        ],
+        "severity": "required"
+      }
+    ],
+    "runtimeChecks": [],
+    "verifyRuns": [],
+    "childReport": {
+      "criteriaSatisfied": [
+        {
+          "id": "criterion-1",
+          "status": "satisfied",
+          "evidence": "Concrete implementation context, file paths/line ranges, three severity-labelled review findings, and residual risks are documented above."
+        }
+      ],
+      "changedFiles": [
+        ".pi-subagents/artifacts/outputs/242aa27f-70a4-4c09-821b-4f4fbbd0d552/parallel-0/1-context-builder/context.md"
+      ],
+      "testsAddedOrUpdated": [],
+      "commandsRun": [
+        {
+          "command": "git status --short && git log -1 --oneline && dotnet --version && (cd frontend && cat package.json)",
+          "result": "passed",
+          "summary": "Confirmed current sales commit, .NET 9.0.316, frontend validation scripts, and only untracked .pi-subagents artifacts."
+        },
+        {
+          "command": "git diff --cached --quiet; git status --short",
+          "result": "passed",
+          "summary": "No staged files; .pi-subagents is untracked."
+        }
+      ],
+      "validationOutput": [
+        "Context-only task: source code was not modified and implementation tests were intentionally not run.",
+        "Recommended targeted validation commands are supplied above."
+      ],
+      "residualRisks": [
+        "Deterministic SQL Server locking/range locking for a missing destination balance must be implemented and exercised against Testcontainers SQL Server.",
+        "Existing one-row ledger writer must not be composed as two independently committed operations."
+      ],
+      "noStagedFiles": true,
+      "diffSummary": "No product-code diff; wrote the required context handoff artifact only.",
+      "reviewFindings": [
+        "high: backend/src/InventoryFlow.Infrastructure/Inventory/InventoryLedgerWriter.cs:65-76 - one-row operation cannot provide atomic deterministic two-balance transfer locking.",
+        "high: backend/src/InventoryFlow.Infrastructure/Persistence/Configurations/InventoryMovementConfiguration.cs:20 - both legs cannot share caller idempotency key because workspace/key is unique.",
+        "medium: backend/src/InventoryFlow.Infrastructure/Sales/EfSalesFulfillmentService.cs:18-45 - serializable/retry template needs pair-level canonical locking before transfer reuse."
+      ],
+      "manualNotes": "No source files were edited; this artifact includes the requested frontend, migration, transaction/retry, locking, and test contract."
+    }
+  },
+  "transcriptPath": "/home/adnan/Projects/Inventory-Flow/.pi-subagents/artifacts/242aa27f-70a4-4c09-821b-4f4fbbd0d552_context-builder_1_transcript.jsonl",
+  "skills": [],
+  "timestamp": 1784383651264
+}

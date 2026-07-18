@@ -1,0 +1,31 @@
+## Review
+- **Correct:** Identity password and lockout policy is configured in `backend/src/InventoryFlow.Infrastructure/DependencyInjection/InfrastructureServiceCollectionExtensions.cs:42-57`; refresh tokens are stored hashed with a unique index and user FK in `.../RefreshTokenConfiguration.cs:19-34`; data-protection keys persist across restarts (`...InfrastructureServiceCollectionExtensions.cs:38-40`).
+- **Correct:** Current baseline validates cleanly: solution build, format verification, and all 7 tests pass.
+- **Blocker (High, for the auth slice):** JWT authentication is not configured. `backend/src/InventoryFlow.Api/Program.cs:18,49` has authorization only—no authentication service, JWT bearer handler, or `UseAuthentication()`. `backend/Directory.Packages.props:8-25` also has no JWT bearer package. The slice must add validated issuer/audience/signing-key/lifetime configuration and middleware ordering before any protected endpoint is shipped.
+- **Blocker (High, for secure rotation):** `backend/src/InventoryFlow.Domain/Entities/RefreshToken.cs:19-92` and `.../RefreshTokenConfiguration.cs:16-34` retain only hash, owner, expiry, and revocation time. There is no token-family/replacement lineage or concurrency token. A replay of a revoked token cannot be distinguished from ordinary invalid use, and parallel refreshes can both observe an active token and mint successors. Add family/session ID, replacement/reuse metadata, and optimistic or conditional-update concurrency in a migration; revoke the whole family on replay.
+- **Blocker (High, testability):** Integration tests do not exercise persistence. `backend/tests/InventoryFlow.IntegrationTests/Api/InventoryFlowApiFactory.cs:25-30` configures a placeholder SQL Server and `HealthEndpointTests` only invokes `/health`. Authentication/rotation must be tested against a real isolated SQL Server instance with migrations applied.
+- **Note (High, production security):** Data-protection keys are persisted but not explicitly encrypted at rest (`...InfrastructureServiceCollectionExtensions.cs:38-40`). Protect them with a production certificate/KMS/Key Vault and restrict database access before using Identity token providers for recovery/confirmation.
+- **Note (Medium):** `RequireUniqueEmail` is application-level (`...InfrastructureServiceCollectionExtensions.cs:44`), while the Identity migration’s `EmailIndex` is non-unique. Registration should set a unique normalized-email database index in a migration to prevent concurrent duplicate accounts.
+- **Note (Medium):** The current fixed-window `"api"` limiter is one shared 100-request bucket (`backend/src/InventoryFlow.Api/Program.cs:23-32,56-57`). Add dedicated partitioned login/refresh limits by client IP and normalized account; return generic failures to avoid account enumeration.
+- **Note (Medium):** Cookie-based browser refresh is not wired: CORS does not allow credentials (`Program.cs:34-40`) and Axios does not set `withCredentials` (`frontend/src/lib/api-client.ts:5-10`). Prefer an opaque refresh token in a `HttpOnly; Secure` cookie scoped to `/api/auth`, never in JSON/local storage. If cross-site cookies are required, use exact origins, `SameSite=None; Secure`, and CSRF protection/origin validation.
+- **Note:** The requested root `plan.md` and `progress.md` do not exist. I reviewed `.project/PROGRESS.md` and `README.md`, which both identify authentication/JWT rotation as upcoming.
+
+**Decision:** JWT plus refresh-token rotation is the appropriate immediate vertical slice because Identity, EF, and a token table already exist, **but only if the slice includes the refresh-token migration, JWT configuration, credential-delivery decision, and real persistence integration tests above.** It is not safe to simply add endpoints to the current model.
+
+**Required endpoint/contracts**
+- `POST /api/auth/register`: `{ email, password, displayName }`; normalize email, create Identity user, return generic validation errors without exposing account existence. Decide explicitly whether confirmed email is required before login.
+- `POST /api/auth/login`: `{ email, password }`; use Identity lockout-aware password sign-in; return generic `401` for unknown/bad/locked accounts. Return `{ accessToken, tokenType: "Bearer", expiresAtUtc }` and set the refresh cookie.
+- `POST /api/auth/refresh`: no raw token body for browser clients; rotate in one transaction, return a new access-token response and replacement cookie. Invalid, expired, revoked, or replayed tokens return generic `401`; replay revokes its family.
+- `POST /api/auth/logout`: revoke the presented refresh session and expire its cookie; optionally add authenticated logout-all/family revocation.
+- `GET /api/auth/me`: `[Authorize]` smoke contract returning non-sensitive identity/roles, proving JWT validation and authorization wiring.
+
+**Implementation constraints**
+- Generate opaque refresh secrets with at least 256 bits from `RandomNumberGenerator`; persist only a SHA-256/HMAC-SHA-256 representation (HMAC key outside the database); never log or return stored hashes.
+- Use short-lived access tokens (for example 5–15 minutes), explicit algorithm allow-list, signing-key validation, issuer, audience, lifetime, and small clock skew. Keep signing material out of tracked configuration and support key rotation via `kid`.
+- Include `sub`, `jti`, issued/expiry, and role claims only as needed; use `[Authorize]`/policy checks for API access. Stateless access tokens remain valid until expiry after logout, so keep their lifetime short.
+- Add `UseAuthentication()` before `UseAuthorization()`, configure a JWT default scheme, and fail startup on incomplete production JWT configuration.
+
+**Tests required**
+- Unit: token-family/replay rules, UTC/time boundary behavior, and concurrency behavior through an injected clock.
+- SQL-backed integration: registration normalization/duplicate race, login success/failure/lockout, JWT rejection for expired/wrong issuer/audience/key/algorithm, protected endpoint `401`, refresh rotation, expired/revoked rejection, concurrent refresh yielding one success, replay family revocation, and logout.
+- HTTP/security: refresh cookie `HttpOnly`, `Secure`, path, SameSite flags; no refresh secret in response/logs; exact-origin credentialed CORS and auth rate-limit behavior.

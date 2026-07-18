@@ -1,0 +1,221 @@
+{
+  "runId": "0e771ef1-1387-4423-a7e3-bd04a3b1fc25",
+  "agent": "worker",
+  "task": "Add the reviewer-required SQL Server purchase receipt endpoint tests only: unauthenticated POST/GET 401; cross-workspace IDs return 404 and list isolation; archived supplier/product/warehouse rejection with no side effects; invalid request has no receipt/movement/balance side effects; receipt-history newest-first ordering. Run backend tests/format. Edit files, do not plan or ask questions; do not commit.\n\n## Acceptance Contract\nAcceptance level: reviewed\nCompletion is not accepted from prose alone. End with a structured acceptance report.\n\nCriteria:\n- criterion-1: Implement the requested change without widening scope\n- criterion-2: Return evidence sufficient for an independent acceptance review\n\nRequired evidence: changed-files, tests-added, commands-run, validation-output, residual-risks, no-staged-files\n\nReview gate: required by reviewer.\n\nFinish with a fenced JSON block tagged `acceptance-report` in this shape:\nUse empty arrays when no items apply; array fields contain strings unless object entries are shown.\n`criteriaSatisfied[].status` must be exactly one of: satisfied, not-satisfied, not-applicable.\n`commandsRun[].result` must be exactly one of: passed, failed, not-run.\n`manualNotes` and `notes` are optional strings; an empty string means no note and does not satisfy `manual-notes` evidence.\n```acceptance-report\n{\n  \"criteriaSatisfied\": [\n    {\n      \"id\": \"criterion-1\",\n      \"status\": \"satisfied\",\n      \"evidence\": \"specific proof\"\n    },\n    {\n      \"id\": \"criterion-2\",\n      \"status\": \"satisfied\",\n      \"evidence\": \"specific proof\"\n    }\n  ],\n  \"changedFiles\": [\n    \"src/file.ts\"\n  ],\n  \"testsAddedOrUpdated\": [\n    \"test/file.test.ts\"\n  ],\n  \"commandsRun\": [\n    {\n      \"command\": \"command\",\n      \"result\": \"passed\",\n      \"summary\": \"short result\"\n    }\n  ],\n  \"validationOutput\": [\n    \"validation output or concise summary\"\n  ],\n  \"residualRisks\": [\n    \"none\"\n  ],\n  \"noStagedFiles\": true,\n  \"diffSummary\": \"short description of the diff\",\n  \"reviewFindings\": [\n    \"blocker: file.ts:12 - issue found, or no blockers\"\n  ],\n  \"manualNotes\": \"anything else the parent should know\"\n}\n```",
+  "exitCode": 0,
+  "model": "openai-codex/gpt-5.6-terra:high",
+  "attemptedModels": [
+    "openai-codex/gpt-5.6-terra:high"
+  ],
+  "modelAttempts": [
+    {
+      "model": "openai-codex/gpt-5.6-terra:high",
+      "success": true,
+      "exitCode": 0,
+      "usage": {
+        "input": 36773,
+        "output": 7178,
+        "cacheRead": 283136,
+        "cacheWrite": 0,
+        "cost": 0.27038650000000003,
+        "turns": 15
+      }
+    }
+  ],
+  "acceptance": {
+    "status": "checked",
+    "explicit": false,
+    "effectiveAcceptance": {
+      "level": "reviewed",
+      "explicit": false,
+      "inferredReason": [
+        "async write-capable or risky run"
+      ],
+      "criteria": [
+        {
+          "id": "criterion-1",
+          "must": "Implement the requested change without widening scope",
+          "evidence": [
+            "changed-files",
+            "tests-added",
+            "commands-run",
+            "validation-output",
+            "residual-risks",
+            "no-staged-files"
+          ],
+          "severity": "required"
+        },
+        {
+          "id": "criterion-2",
+          "must": "Return evidence sufficient for an independent acceptance review",
+          "evidence": [
+            "changed-files",
+            "tests-added",
+            "commands-run",
+            "validation-output",
+            "residual-risks",
+            "no-staged-files"
+          ],
+          "severity": "required"
+        }
+      ],
+      "evidence": [
+        "changed-files",
+        "tests-added",
+        "commands-run",
+        "validation-output",
+        "residual-risks",
+        "no-staged-files"
+      ],
+      "verify": [],
+      "review": {
+        "agent": "reviewer",
+        "required": true
+      },
+      "stopRules": []
+    },
+    "inferredReason": [
+      "async write-capable or risky run"
+    ],
+    "criteria": [
+      {
+        "id": "criterion-1",
+        "must": "Implement the requested change without widening scope",
+        "evidence": [
+          "changed-files",
+          "tests-added",
+          "commands-run",
+          "validation-output",
+          "residual-risks",
+          "no-staged-files"
+        ],
+        "severity": "required"
+      },
+      {
+        "id": "criterion-2",
+        "must": "Return evidence sufficient for an independent acceptance review",
+        "evidence": [
+          "changed-files",
+          "tests-added",
+          "commands-run",
+          "validation-output",
+          "residual-risks",
+          "no-staged-files"
+        ],
+        "severity": "required"
+      }
+    ],
+    "runtimeChecks": [
+      {
+        "id": "criterion:criterion-1",
+        "status": "passed",
+        "message": "Required criterion 'criterion-1' satisfied."
+      },
+      {
+        "id": "criterion:criterion-2",
+        "status": "passed",
+        "message": "Required criterion 'criterion-2' satisfied."
+      },
+      {
+        "id": "evidence:changed-files",
+        "status": "passed",
+        "message": "changed-files evidence present."
+      },
+      {
+        "id": "evidence:tests-added",
+        "status": "passed",
+        "message": "tests-added evidence present."
+      },
+      {
+        "id": "evidence:commands-run",
+        "status": "passed",
+        "message": "commands-run evidence present."
+      },
+      {
+        "id": "evidence:validation-output",
+        "status": "passed",
+        "message": "validation-output evidence present."
+      },
+      {
+        "id": "evidence:residual-risks",
+        "status": "passed",
+        "message": "residual-risks evidence present."
+      },
+      {
+        "id": "evidence:no-staged-files",
+        "status": "passed",
+        "message": "no-staged-files evidence present."
+      },
+      {
+        "id": "no-staged-files",
+        "status": "passed",
+        "message": "No staged files detected."
+      }
+    ],
+    "verifyRuns": [],
+    "childReport": {
+      "criteriaSatisfied": [
+        {
+          "id": "criterion-1",
+          "status": "satisfied",
+          "evidence": "Added only purchase receipt integration tests for authentication, workspace isolation, archived sources, invalid requests, side effects, and history ordering."
+        },
+        {
+          "id": "criterion-2",
+          "status": "satisfied",
+          "evidence": "SQL Server-backed integration suite passed with 37 tests; formatting verification passed; staged-files check was clean."
+        }
+      ],
+      "changedFiles": [
+        "backend/tests/InventoryFlow.IntegrationTests/Api/PurchaseReceiptEndpointsTests.cs"
+      ],
+      "testsAddedOrUpdated": [
+        "PurchaseReceiptEndpointsTests: unauthenticated POST/GET, cross-workspace source IDs/history isolation, archived sources/no side effects, invalid request/no side effects, newest-first history"
+      ],
+      "commandsRun": [
+        {
+          "command": "dotnet format backend/InventoryFlow.sln --include backend/tests/InventoryFlow.IntegrationTests/Api/PurchaseReceiptEndpointsTests.cs",
+          "result": "passed",
+          "summary": "Targeted test file formatted successfully."
+        },
+        {
+          "command": "dotnet format backend/InventoryFlow.sln --verify-no-changes --include backend/tests/InventoryFlow.IntegrationTests/Api/PurchaseReceiptEndpointsTests.cs",
+          "result": "passed",
+          "summary": "No formatting changes required."
+        },
+        {
+          "command": "dotnet test backend/InventoryFlow.sln --no-restore",
+          "result": "passed",
+          "summary": "27 unit tests and 37 SQL Server-backed integration tests passed."
+        }
+      ],
+      "validationOutput": [
+        "Unit tests: Passed 27, Failed 0.",
+        "Integration tests: Passed 37, Failed 0.",
+        "Targeted dotnet format verification completed with no output/errors."
+      ],
+      "residualRisks": [
+        "none"
+      ],
+      "noStagedFiles": true,
+      "diffSummary": "Expanded purchase receipt integration tests with the reviewer-required endpoint scenarios only.",
+      "reviewFindings": [
+        "no blockers found in self-review"
+      ],
+      "manualNotes": "Working tree contains unrelated pre-existing modified and untracked files; no files are staged."
+    },
+    "reviewResult": {
+      "status": "needs-parent-decision",
+      "findings": [
+        {
+          "severity": "non-blocking",
+          "issue": "Reviewed acceptance requires an independent reviewer result.",
+          "rationale": "The run cannot be marked reviewed from child evidence alone."
+        }
+      ]
+    }
+  },
+  "transcriptPath": "/home/adnan/Projects/Inventory-Flow/.pi-subagents/artifacts/0e771ef1-1387-4423-a7e3-bd04a3b1fc25_worker_transcript.jsonl",
+  "skills": [],
+  "timestamp": 1784382131506
+}
