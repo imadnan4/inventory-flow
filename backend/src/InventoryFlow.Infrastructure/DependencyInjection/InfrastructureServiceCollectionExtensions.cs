@@ -1,4 +1,10 @@
+using System.Text;
+using InventoryFlow.Application.Features.Authentication;
+using InventoryFlow.Infrastructure.Authentication;
 using InventoryFlow.Infrastructure.Identity;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Options;
 using InventoryFlow.Infrastructure.Persistence;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
@@ -31,6 +37,34 @@ public static class InfrastructureServiceCollectionExtensions
         ArgumentException.ThrowIfNullOrWhiteSpace(
             connectionString,
             "ConnectionStrings:InventoryFlowDatabase");
+
+        services.AddOptions<JwtOptions>()
+            .Bind(configuration.GetSection(JwtOptions.SectionName))
+            .ValidateDataAnnotations()
+            .Validate(options => Encoding.UTF8.GetByteCount(options.SigningKey) >= 32, "Jwt signing key must be at least 32 bytes.")
+            .ValidateOnStart();
+        var jwt = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
+
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = jwt.Issuer,
+                    ValidateAudience = true,
+                    ValidAudience = jwt.Audience,
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.SigningKey)),
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero,
+                    NameClaimType = "display_name"
+                };
+            });
+        services.AddSingleton(TimeProvider.System);
+        services.AddScoped<JwtAccessTokenIssuer>();
+        services.AddSingleton<RefreshTokenGenerator>();
+        services.AddScoped<IAuthenticationService, IdentityAuthenticationService>();
 
         services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(
             connectionString,

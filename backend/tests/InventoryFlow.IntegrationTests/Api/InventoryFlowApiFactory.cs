@@ -27,6 +27,9 @@ public sealed class InventoryFlowApiFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable(
             ConnectionStringEnvironmentVariable,
             "Server=inventory-flow-test;Database=InventoryFlowTests;Integrated Security=True;TrustServerCertificate=True");
+        Environment.SetEnvironmentVariable("Jwt__SigningKey", "test-signing-key-that-is-at-least-thirty-two-bytes-long");
+        Environment.SetEnvironmentVariable("Jwt__Issuer", "InventoryFlow.Test");
+        Environment.SetEnvironmentVariable("Jwt__Audience", "InventoryFlow.Test.Web");
     }
 
     /// <inheritdoc />

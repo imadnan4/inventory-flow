@@ -16,7 +16,7 @@ public sealed class RefreshTokenTests
     {
         // Arrange
         var now = DateTimeOffset.UtcNow;
-        var token = new RefreshToken(Guid.NewGuid(), Guid.NewGuid(), "token-hash", now.AddDays(7));
+        var token = new RefreshToken(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "token-hash", now.AddDays(7));
 
         // Act
         var isActive = token.IsActive(now);
@@ -33,7 +33,7 @@ public sealed class RefreshTokenTests
     {
         // Arrange
         var now = DateTimeOffset.UtcNow;
-        var token = new RefreshToken(Guid.NewGuid(), Guid.NewGuid(), "token-hash", now.AddDays(7));
+        var token = new RefreshToken(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "token-hash", now.AddDays(7));
 
         // Act
         token.Revoke(now);
@@ -53,10 +53,23 @@ public sealed class RefreshTokenTests
         var exception = Record.Exception(() => new RefreshToken(
             Guid.NewGuid(),
             Guid.Empty,
+            Guid.NewGuid(),
             "token-hash",
             DateTimeOffset.UtcNow.AddDays(7)));
 
         // Assert
+        Assert.IsType<DomainException>(exception);
+    }
+
+    /// <summary>
+    /// Rejects empty refresh-token family identifiers.
+    /// </summary>
+    [Fact]
+    public void Constructor_WithEmptyFamilyIdentifier_ThrowsDomainException()
+    {
+        var exception = Record.Exception(() => new RefreshToken(
+            Guid.NewGuid(), Guid.NewGuid(), Guid.Empty, "token-hash", DateTimeOffset.UtcNow.AddDays(7)));
+
         Assert.IsType<DomainException>(exception);
     }
 
@@ -71,6 +84,7 @@ public sealed class RefreshTokenTests
 
         // Act
         var exception = Record.Exception(() => new RefreshToken(
+            Guid.NewGuid(),
             Guid.NewGuid(),
             Guid.NewGuid(),
             "token-hash",

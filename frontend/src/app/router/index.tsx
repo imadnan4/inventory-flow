@@ -1,6 +1,8 @@
 import { Navigate, createBrowserRouter } from "react-router"
 
 import { DashboardLayout } from "@/layouts/DashboardLayout"
+import { PublicOnly } from "@/features/auth/components/PublicOnly"
+import { RequireAuth } from "@/features/auth/components/RequireAuth"
 
 const placeholderPage = (title: string) => (
   <section className="rounded-xl border border-dashed p-8">
@@ -22,24 +24,39 @@ const notFoundPage = (
 
 export const router = createBrowserRouter([
   {
-    path: "/",
-    element: <DashboardLayout />,
+    element: <PublicOnly />,
     children: [
-      { index: true, element: <Navigate replace to="/dashboard" /> },
+      { path: "login", lazy: () => import("@/features/auth/pages/LoginPage") },
       {
-        path: "dashboard",
-        lazy: () => import("@/features/dashboard/pages/DashboardPage"),
+        path: "register",
+        lazy: () => import("@/features/auth/pages/RegisterPage"),
       },
-      { path: "products", element: placeholderPage("Products") },
-      { path: "categories", element: placeholderPage("Categories") },
-      { path: "inventory", element: placeholderPage("Inventory") },
-      { path: "suppliers", element: placeholderPage("Suppliers") },
-      { path: "warehouses", element: placeholderPage("Warehouses") },
-      { path: "purchases", element: placeholderPage("Purchase orders") },
-      { path: "sales", element: placeholderPage("Sales orders") },
-      { path: "reports", element: placeholderPage("Reports") },
-      { path: "users", element: placeholderPage("Users") },
-      { path: "settings", element: placeholderPage("Settings") },
+    ],
+  },
+  {
+    element: <RequireAuth />,
+    children: [
+      {
+        path: "/",
+        element: <DashboardLayout />,
+        children: [
+          { index: true, element: <Navigate replace to="/dashboard" /> },
+          {
+            path: "dashboard",
+            lazy: () => import("@/features/dashboard/pages/DashboardPage"),
+          },
+          { path: "products", element: placeholderPage("Products") },
+          { path: "categories", element: placeholderPage("Categories") },
+          { path: "inventory", element: placeholderPage("Inventory") },
+          { path: "suppliers", element: placeholderPage("Suppliers") },
+          { path: "warehouses", element: placeholderPage("Warehouses") },
+          { path: "purchases", element: placeholderPage("Purchase orders") },
+          { path: "sales", element: placeholderPage("Sales orders") },
+          { path: "reports", element: placeholderPage("Reports") },
+          { path: "users", element: placeholderPage("Users") },
+          { path: "settings", element: placeholderPage("Settings") },
+        ],
+      },
     ],
   },
   { path: "*", element: notFoundPage },

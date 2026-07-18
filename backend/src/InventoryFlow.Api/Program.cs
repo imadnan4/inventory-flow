@@ -36,7 +36,8 @@ builder.Services.AddCors(options => options.AddPolicy("Frontend", policy =>
     var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
     policy.WithOrigins(allowedOrigins)
         .AllowAnyHeader()
-        .AllowAnyMethod();
+        .AllowAnyMethod()
+        .AllowCredentials();
 }));
 
 var app = builder.Build();
@@ -46,6 +47,7 @@ app.UseSerilogRequestLogging();
 app.UseHttpsRedirection();
 app.UseRateLimiter();
 app.UseCors("Frontend");
+app.UseAuthentication();
 app.UseAuthorization();
 
 if (app.Environment.IsDevelopment())

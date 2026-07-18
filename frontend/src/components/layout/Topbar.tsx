@@ -27,11 +27,26 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { useUiStore } from "@/store/ui-store"
+import { logout } from "@/features/auth/auth-api"
+import { useAuthStore } from "@/features/auth/auth-store"
+import { invalidateSession } from "@/lib/api-client"
+import { useNavigate } from "react-router"
 
 export function Topbar() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
   const { setTheme, theme } = useTheme()
   const toggleSidebar = useUiStore((state) => state.toggleSidebar)
+  const user = useAuthStore((state) => state.user)
+  const navigate = useNavigate()
+  const signOut = async () => {
+    invalidateSession()
+
+    try {
+      await logout()
+    } finally {
+      navigate("/login", { replace: true })
+    }
+  }
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark")
@@ -87,17 +102,23 @@ export function Topbar() {
             render={<Button className="ml-1" size="icon" variant="ghost" />}
           >
             <Avatar className="size-7">
-              <AvatarFallback>AA</AvatarFallback>
+              <AvatarFallback>
+                {user?.displayName.slice(0, 2).toUpperCase() ?? "?"}
+              </AvatarFallback>
             </Avatar>
             <span className="sr-only">Open user menu</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuLabel>Adnan Ahmad</DropdownMenuLabel>
+            <DropdownMenuLabel>
+              {user?.displayName ?? "Account"}
+            </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem>Profile</DropdownMenuItem>
             <DropdownMenuItem>Settings</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive">Sign out</DropdownMenuItem>
+            <DropdownMenuItem onClick={signOut} variant="destructive">
+              Sign out
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

@@ -16,6 +16,9 @@ public sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refresh
         builder.ToTable("RefreshTokens");
         builder.HasKey(token => token.Id);
 
+        builder.Property(token => token.FamilyId)
+            .IsRequired();
+
         builder.Property(token => token.TokenHash)
             .HasMaxLength(128)
             .IsRequired();
@@ -27,6 +30,8 @@ public sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refresh
             .IsUnique();
 
         builder.HasIndex(token => new { token.UserId, token.ExpiresAtUtc });
+
+        builder.HasIndex(token => token.FamilyId);
 
         builder.HasOne<ApplicationUser>()
             .WithMany()

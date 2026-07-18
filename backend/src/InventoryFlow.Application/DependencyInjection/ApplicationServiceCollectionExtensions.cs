@@ -1,4 +1,5 @@
 using FluentValidation;
+using InventoryFlow.Application.Common.Behaviors;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -19,7 +20,11 @@ public static class ApplicationServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         var assembly = typeof(ApplicationServiceCollectionExtensions).Assembly;
-        services.AddMediatR(configuration => configuration.RegisterServicesFromAssembly(assembly));
+        services.AddMediatR(configuration =>
+        {
+            configuration.RegisterServicesFromAssembly(assembly);
+            configuration.AddOpenBehavior(typeof(ValidationBehavior<,>));
+        });
         services.AddValidatorsFromAssembly(assembly);
 
         return services;

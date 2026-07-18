@@ -1,3 +1,5 @@
+using FluentValidation;
+using InventoryFlow.Application.Features.Authentication;
 using InventoryFlow.Domain.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
@@ -28,9 +30,13 @@ public sealed class GlobalExceptionHandler(
             return false;
         }
 
-        var statusCode = exception is DomainException
-            ? StatusCodes.Status400BadRequest
-            : StatusCodes.Status500InternalServerError;
+        var statusCode = exception switch
+        {
+            ValidationException => StatusCodes.Status400BadRequest,
+            DomainException => StatusCodes.Status400BadRequest,
+            AuthenticationException => StatusCodes.Status401Unauthorized,
+            _ => StatusCodes.Status500InternalServerError,
+        };
 
         logger.LogError(
             exception,
@@ -38,12 +44,19 @@ public sealed class GlobalExceptionHandler(
             httpContext.Request.Method,
             httpContext.Request.Path);
 
+        if (exception is ValidationException validationException)
+        {
+            var validation = new ValidationProblemDetails(validationException.Errors.GroupBy(error => error.PropertyName).ToDictionary(group => group.Key, group => group.Select(error => error.ErrorMessage).ToArray()))
+            { Status = statusCode, Title = "One or more validation errors occurred.", Type = "https://tools.ietf.org/html/rfc9110#section-15.5.1" };
+            httpContext.Response.StatusCode = statusCode;
+            await httpContext.Response.WriteAsJsonAsync(validation, options: null, contentType: "application/problem+json", cancellationToken: cancellationToken);
+            return true;
+        }
+
         var problemDetails = new ProblemDetails
         {
             Status = statusCode,
-            Title = statusCode == StatusCodes.Status400BadRequest
-                ? "A business rule was violated."
-                : "An unexpected error occurred.",
+            Title = statusCode switch { StatusCodes.Status400BadRequest => "A business rule was violated.", StatusCodes.Status401Unauthorized => "Authentication failed.", _ => "An unexpected error occurred." },
             Type = statusCode == StatusCodes.Status400BadRequest
                 ? "https://tools.ietf.org/html/rfc9110#section-15.5.1"
                 : "https://tools.ietf.org/html/rfc9110#section-15.6.1",
