@@ -16,6 +16,8 @@ using InventoryFlow.Infrastructure.Tenancy;
 using InventoryFlow.Application.Common.Tenancy;
 using InventoryFlow.Application.Features.Suppliers;
 using InventoryFlow.Infrastructure.Suppliers;
+using InventoryFlow.Application.Features.Purchases;
+using InventoryFlow.Infrastructure.Purchases;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -81,6 +83,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IWarehouseCatalog, EfWarehouseCatalog>();
         services.AddScoped<ISupplierCatalog, EfSupplierCatalog>();
         services.AddScoped<IInventoryLedger, EfInventoryLedger>();
+        services.AddScoped<IPurchaseReceiptService, EfPurchaseReceiptService>();
 
         services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(
             connectionString,

@@ -27,6 +27,9 @@ public sealed class ApplicationDbContext(
     /// <summary>Gets immutable inventory ledger movements.</summary>
     public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>();
 
+    /// <summary>Gets immutable supplier-linked purchase receipts.</summary>
+    public DbSet<PurchaseReceipt> PurchaseReceipts => Set<PurchaseReceipt>();
+
     /// <summary>Gets current inventory balances.</summary>
     public DbSet<InventoryBalance> InventoryBalances => Set<InventoryBalance>();
 
