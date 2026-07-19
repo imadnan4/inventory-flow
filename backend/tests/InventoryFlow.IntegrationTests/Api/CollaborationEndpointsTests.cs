@@ -136,6 +136,100 @@ public sealed class CollaborationEndpointsTests : IClassFixture<AuthenticatedApi
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
+    /// <summary>Accepting an already-accepted invitation is rejected (second accept fails).</summary>
+    [Fact]
+    public async Task Invitation_AcceptTwice_SecondAcceptRejected()
+    {
+        var owner = await RegisterAsync("owner");
+        var invited = await RegisterAsync("invited");
+        var created = await CreateInvitationAsync(owner.Session.AccessToken, invited.Session.User.Email);
+
+        using var first = await SendJsonWithBearerAsync(HttpMethod.Post, "/api/collaboration/invitations/accept", invited.Session.AccessToken, new AcceptWorkspaceInvitationRequest(created.Token));
+        Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+
+        using var second = await SendJsonWithBearerAsync(HttpMethod.Post, "/api/collaboration/invitations/accept", invited.Session.AccessToken, new AcceptWorkspaceInvitationRequest(created.Token));
+        Assert.Equal(HttpStatusCode.BadRequest, second.StatusCode);
+    }
+
+    /// <summary>Creating an invitation for a non-existent email is rejected.</summary>
+    [Fact]
+    public async Task Invitation_CreateForNonExistentEmail_ReturnsBadRequest()
+    {
+        var owner = await RegisterAsync("owner");
+
+        using var response = await SendJsonWithBearerAsync(HttpMethod.Post, "/api/collaboration/invitations", owner.Session.AccessToken, new CreateWorkspaceInvitationRequest("nobody@example.test"));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    /// <summary>Creating an invitation for an already-member user is a conflict.</summary>
+    [Fact]
+    public async Task Invitation_CreateForExistingMember_ReturnsConflict()
+    {
+        var (owner, invited, _) = await InviteAcceptAndSwitchMemberAsync();
+
+        using var response = await SendJsonWithBearerAsync(HttpMethod.Post, "/api/collaboration/invitations", owner.Session.AccessToken, new CreateWorkspaceInvitationRequest(invited.Session.User.Email));
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    /// <summary>Creating a duplicate pending invitation is a conflict (unique index).</summary>
+    [Fact]
+    public async Task Invitation_CreateDuplicatePending_ReturnsConflict()
+    {
+        var owner = await RegisterAsync("owner");
+        var invited = await RegisterAsync("invited");
+        await CreateInvitationAsync(owner.Session.AccessToken, invited.Session.User.Email);
+
+        using var response = await SendJsonWithBearerAsync(HttpMethod.Post, "/api/collaboration/invitations", owner.Session.AccessToken, new CreateWorkspaceInvitationRequest(invited.Session.User.Email));
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    /// <summary>Switching into a workspace the user is not a member of is forbidden.</summary>
+    [Fact]
+    public async Task SwitchWorkspace_ToNonMemberWorkspace_ReturnsForbidden()
+    {
+        var owner = await RegisterAsync("owner");
+        var stranger = await RegisterAsync("stranger");
+
+        using var response = await SendJsonWithBearerAndCookieAsync(HttpMethod.Post, "/api/auth/workspace/switch", stranger.Session.AccessToken, stranger.RefreshCookie, new { workspaceId = owner.Session.User.Workspace.Id });
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    /// <summary>GET /api/auth/me with a forged/stale workspace claim returns 401.</summary>
+    [Fact]
+    public async Task Me_WithStaleWorkspaceClaim_ReturnsUnauthorized()
+    {
+        var user = await RegisterAsync("stale");
+        var forgedToken = CreateAccessToken(user.Session.User.Id, user.Session.User.Email, user.Session.User.DisplayName, Guid.NewGuid(), "Member");
+
+        using var response = await SendWithBearerAsync(HttpMethod.Get, "/api/auth/me", forgedToken);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    /// <summary>Owner can list members and invitations in the active workspace (200).</summary>
+    [Fact]
+    public async Task CollaborationAdmin_WithOwner_ReturnsMembersAndInvitations()
+    {
+        var owner = await RegisterAsync("owner");
+        var invited = await RegisterAsync("invited");
+        await CreateInvitationAsync(owner.Session.AccessToken, invited.Session.User.Email);
+
+        using var members = await SendWithBearerAsync(HttpMethod.Get, "/api/collaboration/members", owner.Session.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, members.StatusCode);
+        var memberList = await members.Content.ReadFromJsonAsync<IReadOnlyCollection<WorkspaceMemberResponse>>(JsonOptions);
+        Assert.NotNull(memberList);
+
+        using var invitations = await SendWithBearerAsync(HttpMethod.Get, "/api/collaboration/invitations", owner.Session.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, invitations.StatusCode);
+        var invitationList = await invitations.Content.ReadFromJsonAsync<IReadOnlyCollection<WorkspaceInvitationResponse>>(JsonOptions);
+        Assert.NotNull(invitationList);
+        Assert.Contains(invitationList, item => string.Equals(item.Email, invited.Session.User.Email, StringComparison.OrdinalIgnoreCase));
+    }
+
     private async Task<(RegisteredUser Owner, RegisteredUser Invited, string SwitchCookie)> InviteAcceptAndSwitchMemberAsync()
     {
         var owner = await RegisterAsync("owner");
