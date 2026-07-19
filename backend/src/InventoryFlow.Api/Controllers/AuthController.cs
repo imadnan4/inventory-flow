@@ -1,10 +1,10 @@
 using System.Security.Claims;
 using InventoryFlow.Application.Features.Authentication;
+using InventoryFlow.Infrastructure.Authentication;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using InventoryFlow.Infrastructure.Authentication;
 
 namespace InventoryFlow.Api.Controllers;
 
@@ -50,6 +50,23 @@ public sealed class AuthController(ISender sender, IOptions<JwtOptions> options)
         return Ok(session.Response);
     }
 
+    /// <summary>Switches the active workspace, rotating the persisted refresh session.</summary>
+    [Authorize]
+    [HttpPost("workspace/switch")]
+    [ProducesResponseType<AuthenticationResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<AuthenticationResponse>> SwitchWorkspace(SwitchWorkspaceRequest request, CancellationToken cancellationToken)
+    {
+        var refreshToken = Request.Cookies[_options.RefreshCookieName];
+        if (string.IsNullOrWhiteSpace(refreshToken)) { DeleteRefreshCookie(); return Unauthorized(); }
+        var value = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(value, out var userId)) return Unauthorized();
+        var session = await sender.Send(new SwitchWorkspaceCommand(userId, request.WorkspaceId, refreshToken), cancellationToken);
+        if (session is null) return Forbid();
+        SetRefreshCookie(session.RefreshToken);
+        return Ok(session.Response);
+    }
+
     /// <summary>Revokes the refresh family held by the browser.</summary>
     [HttpPost("logout")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -67,8 +84,9 @@ public sealed class AuthController(ISender sender, IOptions<JwtOptions> options)
     public async Task<ActionResult<AuthenticatedUser>> Me(CancellationToken cancellationToken)
     {
         var value = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (!Guid.TryParse(value, out var userId)) return Unauthorized();
-        var user = await sender.Send(new GetCurrentUserQuery(userId), cancellationToken);
+        var workspaceValue = User.FindFirstValue(JwtAccessTokenIssuer.WorkspaceIdClaimType);
+        if (!Guid.TryParse(value, out var userId) || !Guid.TryParse(workspaceValue, out var workspaceId)) return Unauthorized();
+        var user = await sender.Send(new GetCurrentUserQuery(userId, workspaceId), cancellationToken);
         return user is null ? Unauthorized() : Ok(user);
     }
 
@@ -76,3 +94,6 @@ public sealed class AuthController(ISender sender, IOptions<JwtOptions> options)
     { HttpOnly = true, SameSite = SameSiteMode.Strict, Secure = !HttpContext.RequestServices.GetRequiredService<IHostEnvironment>().IsDevelopment(), Path = "/api/auth", MaxAge = TimeSpan.FromDays(_options.RefreshTokenLifetimeDays), Expires = DateTimeOffset.UtcNow.AddDays(_options.RefreshTokenLifetimeDays), IsEssential = true });
     private void DeleteRefreshCookie() => Response.Cookies.Delete(_options.RefreshCookieName, new CookieOptions { Path = "/api/auth", SameSite = SameSiteMode.Strict, Secure = !HttpContext.RequestServices.GetRequiredService<IHostEnvironment>().IsDevelopment() });
 }
+
+/// <summary>Supplies an active-workspace switch request.</summary>
+public sealed record SwitchWorkspaceRequest(Guid WorkspaceId);

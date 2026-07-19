@@ -20,6 +20,7 @@ public sealed class RefreshToken : Entity<Guid>
         Guid id,
         Guid userId,
         Guid familyId,
+        Guid workspaceId,
         string tokenHash,
         DateTimeOffset expiresAtUtc)
         : base(id)
@@ -39,6 +40,11 @@ public sealed class RefreshToken : Entity<Guid>
             throw new DomainException("Refresh token family identifier is required.");
         }
 
+        if (workspaceId == Guid.Empty)
+        {
+            throw new DomainException("Refresh token workspace identifier is required.");
+        }
+
         if (string.IsNullOrWhiteSpace(tokenHash))
         {
             throw new DomainException("Refresh token hash is required.");
@@ -51,6 +57,7 @@ public sealed class RefreshToken : Entity<Guid>
 
         UserId = userId;
         FamilyId = familyId;
+        WorkspaceId = workspaceId;
         TokenHash = tokenHash;
         ExpiresAtUtc = expiresAtUtc;
     }
@@ -64,6 +71,11 @@ public sealed class RefreshToken : Entity<Guid>
     /// Gets the identifier shared by all tokens created from this session.
     /// </summary>
     public Guid FamilyId { get; private set; }
+
+    /// <summary>
+    /// Gets the active workspace for this refresh session.
+    /// </summary>
+    public Guid WorkspaceId { get; private set; }
 
     /// <summary>
     /// Gets the one-way hash of the issued token.

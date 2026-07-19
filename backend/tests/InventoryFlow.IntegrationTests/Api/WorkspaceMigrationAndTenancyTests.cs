@@ -6,6 +6,7 @@ using InventoryFlow.Application.Features.Authentication;
 using InventoryFlow.Domain.Entities;
 using InventoryFlow.Infrastructure.Identity;
 using InventoryFlow.Infrastructure.Persistence;
+using InventoryFlow.Infrastructure.Authentication;
 using InventoryFlow.Infrastructure.Tenancy;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -75,10 +76,10 @@ public sealed class WorkspaceMigrationAndTenancyTests : IClassFixture<WorkspaceM
     }
 
     /// <summary>
-    /// Resolves only the authenticated user's workspace and fails closed when owner membership is ambiguous.
+    /// Resolves only the authenticated user's active workspace claim after SQL membership revalidation.
     /// </summary>
     [Fact]
-    public async Task CurrentWorkspaceResolver_EnforcesAuthenticatedUserBoundary_AndFailsClosedWhenAmbiguous()
+    public async Task CurrentWorkspaceResolver_EnforcesAuthenticatedUserBoundary_AndFailsClosedForStaleWorkspaceClaim()
     {
         // Arrange
         await using var scope = _fixture.Factory.Services.CreateAsyncScope();
@@ -93,7 +94,7 @@ public sealed class WorkspaceMigrationAndTenancyTests : IClassFixture<WorkspaceM
             new WorkspaceMember(Guid.NewGuid(), secondWorkspace.Id, secondUser.Id, WorkspaceMemberRole.Owner, DateTimeOffset.UtcNow));
         await dbContext.SaveChangesAsync();
 
-        var resolver = CreateResolver(dbContext, firstUser.Id);
+        var resolver = CreateResolver(dbContext, firstUser.Id, firstWorkspace.Id);
 
         // Act
         var currentWorkspace = await resolver.GetAsync();
@@ -102,29 +103,19 @@ public sealed class WorkspaceMigrationAndTenancyTests : IClassFixture<WorkspaceM
         Assert.NotNull(currentWorkspace);
         Assert.Equal(firstWorkspace.Id, currentWorkspace.Id);
         Assert.NotEqual(secondWorkspace.Id, currentWorkspace.Id);
-
-        // Arrange
-        var additionalWorkspace = new Workspace(Guid.NewGuid(), "Additional workspace", DateTimeOffset.UtcNow);
-        dbContext.Workspaces.Add(additionalWorkspace);
-        dbContext.WorkspaceMembers.Add(new WorkspaceMember(
-            Guid.NewGuid(),
-            additionalWorkspace.Id,
-            firstUser.Id,
-            WorkspaceMemberRole.Owner,
-            DateTimeOffset.UtcNow));
-        await dbContext.SaveChangesAsync();
+        Assert.Equal(WorkspaceMemberRole.Owner, currentWorkspace.Role);
 
         // Act
-        var ambiguousWorkspace = await resolver.GetAsync();
+        var staleWorkspace = await CreateResolver(dbContext, firstUser.Id, secondWorkspace.Id).GetAsync();
 
         // Assert
-        Assert.Null(ambiguousWorkspace);
+        Assert.Null(staleWorkspace);
     }
 
-    private static CurrentWorkspaceResolver CreateResolver(ApplicationDbContext dbContext, Guid userId)
+    private static CurrentWorkspaceResolver CreateResolver(ApplicationDbContext dbContext, Guid userId, Guid workspaceId)
     {
         var identity = new ClaimsIdentity(
-            [new Claim(ClaimTypes.NameIdentifier, userId.ToString())],
+            [new Claim(ClaimTypes.NameIdentifier, userId.ToString()), new Claim(JwtAccessTokenIssuer.WorkspaceIdClaimType, workspaceId.ToString())],
             "Test");
         var accessor = new HttpContextAccessor
         {

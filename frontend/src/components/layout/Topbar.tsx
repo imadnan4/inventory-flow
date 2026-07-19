@@ -27,16 +27,20 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { useUiStore } from "@/store/ui-store"
-import { logout } from "@/features/auth/auth-api"
+import { logout, switchWorkspace } from "@/features/auth/auth-api"
 import { useAuthStore } from "@/features/auth/auth-store"
 import { invalidateSession } from "@/lib/api-client"
 import { useNavigate } from "react-router"
 
 export function Topbar() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
+  const [switchingWorkspaceId, setSwitchingWorkspaceId] = useState<
+    string | null
+  >(null)
   const { setTheme, theme } = useTheme()
   const toggleSidebar = useUiStore((state) => state.toggleSidebar)
   const user = useAuthStore((state) => state.user)
+  const setSession = useAuthStore((state) => state.setSession)
   const navigate = useNavigate()
   const signOut = async () => {
     invalidateSession()
@@ -50,6 +54,18 @@ export function Topbar() {
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark")
+  }
+
+  const handleWorkspaceSwitch = async (workspaceId: string) => {
+    if (workspaceId === user?.workspace.id || switchingWorkspaceId) return
+    setSwitchingWorkspaceId(workspaceId)
+
+    try {
+      const session = await switchWorkspace(workspaceId)
+      setSession(session)
+    } finally {
+      setSwitchingWorkspaceId(null)
+    }
   }
 
   return (
@@ -108,13 +124,34 @@ export function Topbar() {
             </Avatar>
             <span className="sr-only">Open user menu</span>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent align="end" className="w-64">
             <DropdownMenuLabel>
               {user?.displayName ?? "Account"}
               <span className="block text-xs font-normal text-muted-foreground">
                 {user?.workspace.name ?? "Workspace"}
               </span>
             </DropdownMenuLabel>
+            {user && user.workspaces.length > 0 ? (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Switch workspace</DropdownMenuLabel>
+                {user.workspaces.map((workspace) => (
+                  <DropdownMenuItem
+                    disabled={Boolean(switchingWorkspaceId)}
+                    key={workspace.id}
+                    onClick={() => void handleWorkspaceSwitch(workspace.id)}
+                  >
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span className="truncate">{workspace.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {workspace.role}
+                        {workspace.id === user.workspace.id ? " · Active" : ""}
+                      </span>
+                    </span>
+                  </DropdownMenuItem>
+                ))}
+              </>
+            ) : null}
             <DropdownMenuSeparator />
             <DropdownMenuItem>Profile</DropdownMenuItem>
             <DropdownMenuItem>Settings</DropdownMenuItem>

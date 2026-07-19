@@ -45,6 +45,9 @@ public sealed class ApplicationDbContext(
     /// <summary>Gets workspace memberships.</summary>
     public DbSet<WorkspaceMember> WorkspaceMembers => Set<WorkspaceMember>();
 
+    /// <summary>Gets workspace invitations.</summary>
+    public DbSet<WorkspaceInvitation> WorkspaceInvitations => Set<WorkspaceInvitation>();
+
     /// <summary>Gets workspace-scoped products.</summary>
     public DbSet<Product> Products => Set<Product>();
 

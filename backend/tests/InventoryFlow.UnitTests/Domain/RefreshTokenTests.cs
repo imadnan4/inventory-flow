@@ -16,7 +16,7 @@ public sealed class RefreshTokenTests
     {
         // Arrange
         var now = DateTimeOffset.UtcNow;
-        var token = new RefreshToken(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "token-hash", now.AddDays(7));
+        var token = CreateToken(now.AddDays(7));
 
         // Act
         var isActive = token.IsActive(now);
@@ -33,7 +33,7 @@ public sealed class RefreshTokenTests
     {
         // Arrange
         var now = DateTimeOffset.UtcNow;
-        var token = new RefreshToken(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "token-hash", now.AddDays(7));
+        var token = CreateToken(now.AddDays(7));
 
         // Act
         token.Revoke(now);
@@ -54,6 +54,7 @@ public sealed class RefreshTokenTests
             Guid.NewGuid(),
             Guid.Empty,
             Guid.NewGuid(),
+            Guid.NewGuid(),
             "token-hash",
             DateTimeOffset.UtcNow.AddDays(7)));
 
@@ -68,7 +69,19 @@ public sealed class RefreshTokenTests
     public void Constructor_WithEmptyFamilyIdentifier_ThrowsDomainException()
     {
         var exception = Record.Exception(() => new RefreshToken(
-            Guid.NewGuid(), Guid.NewGuid(), Guid.Empty, "token-hash", DateTimeOffset.UtcNow.AddDays(7)));
+            Guid.NewGuid(), Guid.NewGuid(), Guid.Empty, Guid.NewGuid(), "token-hash", DateTimeOffset.UtcNow.AddDays(7)));
+
+        Assert.IsType<DomainException>(exception);
+    }
+
+    /// <summary>
+    /// Rejects empty workspace identifiers.
+    /// </summary>
+    [Fact]
+    public void Constructor_WithEmptyWorkspaceIdentifier_ThrowsDomainException()
+    {
+        var exception = Record.Exception(() => new RefreshToken(
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.Empty, "token-hash", DateTimeOffset.UtcNow.AddDays(7)));
 
         Assert.IsType<DomainException>(exception);
     }
@@ -87,10 +100,13 @@ public sealed class RefreshTokenTests
             Guid.NewGuid(),
             Guid.NewGuid(),
             Guid.NewGuid(),
+            Guid.NewGuid(),
             "token-hash",
             nonUtcExpiration));
 
         // Assert
         Assert.IsType<DomainException>(exception);
     }
+
+    private static RefreshToken CreateToken(DateTimeOffset expiresAtUtc) => new(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "token-hash", expiresAtUtc);
 }

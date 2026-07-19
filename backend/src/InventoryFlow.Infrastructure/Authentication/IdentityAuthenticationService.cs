@@ -35,7 +35,8 @@ public sealed class IdentityAuthenticationService(
             var workspace = new Workspace(Guid.NewGuid(), CreatePersonalWorkspaceName(user.DisplayName), now);
             var membership = new WorkspaceMember(Guid.NewGuid(), workspace.Id, user.Id, WorkspaceMemberRole.Owner, now);
             dbContext.AddRange(workspace, membership);
-            var session = CreateSession(user, ToWorkspace(workspace), Guid.NewGuid(), now);
+            var activeWorkspace = ToWorkspace(workspace.Id, workspace.Name, membership.Role);
+            var session = CreateSession(user, activeWorkspace, [activeWorkspace], Guid.NewGuid(), now);
             dbContext.RefreshTokens.Add(session.Token);
             await dbContext.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
@@ -50,7 +51,7 @@ public sealed class IdentityAuthenticationService(
         if (user is null) return null;
         var result = await signInManager.CheckPasswordSignInAsync(user, command.Password, lockoutOnFailure: true);
         if (!result.Succeeded) return null;
-        return await IssueSessionAsync(user, Guid.NewGuid(), cancellationToken);
+        return await IssueSessionAsync(user, Guid.NewGuid(), preferredWorkspaceId: null, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -73,18 +74,52 @@ public sealed class IdentityAuthenticationService(
             }
             token.Revoke(now);
             var user = await userManager.FindByIdAsync(token.UserId.ToString());
-            var workspace = user is null ? null : await GetWorkspaceAsync(user.Id, cancellationToken);
-            if (user is null || workspace is null)
+            var session = user is null ? null : await CreateSessionForWorkspaceAsync(user, token.WorkspaceId, token.FamilyId, now, cancellationToken);
+            if (session is null)
             {
                 await dbContext.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
                 return null;
             }
-            var session = CreateSession(user, workspace, token.FamilyId, now);
-            dbContext.RefreshTokens.Add(session.Token);
+            dbContext.RefreshTokens.Add(session.Value.Token);
             await dbContext.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
-            return session.Session;
+            return session.Value.Session;
+        });
+    }
+
+    /// <inheritdoc />
+    public async Task<AuthenticationSession?> SwitchWorkspaceAsync(Guid userId, Guid workspaceId, string refreshToken, CancellationToken cancellationToken)
+    {
+        var hash = refreshTokenGenerator.Hash(refreshToken);
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            var now = timeProvider.GetUtcNow();
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+            var token = await dbContext.RefreshTokens.SingleOrDefaultAsync(item => item.TokenHash == hash, cancellationToken);
+            if (token is null || token.UserId != userId) { await transaction.CommitAsync(cancellationToken); return null; }
+            if (!token.IsActive(now))
+            {
+                await RevokeFamilyAsync(token.FamilyId, now, cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+                return null;
+            }
+
+            var user = await userManager.FindByIdAsync(userId.ToString());
+            var session = user is null ? null : await CreateSessionForWorkspaceAsync(user, workspaceId, token.FamilyId, now, cancellationToken);
+            if (session is null)
+            {
+                await transaction.CommitAsync(cancellationToken);
+                return null;
+            }
+
+            token.Revoke(now);
+            dbContext.RefreshTokens.Add(session.Value.Token);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return session.Value.Session;
         });
     }
 
@@ -105,38 +140,52 @@ public sealed class IdentityAuthenticationService(
     }
 
     /// <inheritdoc />
-    public async Task<AuthenticatedUser?> GetUserAsync(Guid userId, CancellationToken cancellationToken)
+    public async Task<AuthenticatedUser?> GetUserAsync(Guid userId, Guid workspaceId, CancellationToken cancellationToken)
     {
         var user = await userManager.FindByIdAsync(userId.ToString());
-        var workspace = user is null ? null : await GetWorkspaceAsync(user.Id, cancellationToken);
-        return user is null || workspace is null ? null : ToUser(user, workspace);
+        if (user is null) return null;
+        var workspaces = await GetWorkspacesAsync(user.Id, cancellationToken);
+        var active = workspaces.SingleOrDefault(workspace => workspace.Id == workspaceId);
+        return active is null ? null : ToUser(user, active, workspaces);
     }
 
-    private async Task<AuthenticationSession?> IssueSessionAsync(ApplicationUser user, Guid familyId, CancellationToken cancellationToken)
+    private async Task<AuthenticationSession?> IssueSessionAsync(ApplicationUser user, Guid familyId, Guid? preferredWorkspaceId, CancellationToken cancellationToken)
     {
-        var workspace = await GetWorkspaceAsync(user.Id, cancellationToken);
-        if (workspace is null) return null;
-        var created = CreateSession(user, workspace, familyId, timeProvider.GetUtcNow());
+        var now = timeProvider.GetUtcNow();
+        var workspaces = await GetWorkspacesAsync(user.Id, cancellationToken);
+        var active = preferredWorkspaceId is null
+            ? workspaces.FirstOrDefault()
+            : workspaces.SingleOrDefault(workspace => workspace.Id == preferredWorkspaceId.Value);
+        if (active is null) return null;
+        var created = CreateSession(user, active, workspaces, familyId, now);
         dbContext.RefreshTokens.Add(created.Token);
         await dbContext.SaveChangesAsync(cancellationToken);
         return created.Session;
     }
 
-    private async Task<AuthenticatedWorkspace?> GetWorkspaceAsync(Guid userId, CancellationToken cancellationToken)
+    private async Task<(AuthenticationSession Session, RefreshToken Token)?> CreateSessionForWorkspaceAsync(ApplicationUser user, Guid workspaceId, Guid familyId, DateTimeOffset now, CancellationToken cancellationToken)
     {
-        var workspaces = await (from member in dbContext.WorkspaceMembers.AsNoTracking()
-                                join workspace in dbContext.Workspaces.AsNoTracking() on member.WorkspaceId equals workspace.Id
-                                where member.UserId == userId && member.Role == WorkspaceMemberRole.Owner
-                                select new AuthenticatedWorkspace(workspace.Id, workspace.Name)).Take(2).ToListAsync(cancellationToken);
-        return workspaces.Count == 1 ? workspaces[0] : null;
+        var workspaces = await GetWorkspacesAsync(user.Id, cancellationToken);
+        var active = workspaces.SingleOrDefault(workspace => workspace.Id == workspaceId);
+        return active is null ? null : CreateSession(user, active, workspaces, familyId, now);
     }
 
-    private (AuthenticationSession Session, RefreshToken Token) CreateSession(ApplicationUser user, AuthenticatedWorkspace workspace, Guid familyId, DateTimeOffset now)
+    private async Task<IReadOnlyCollection<AuthenticatedWorkspace>> GetWorkspacesAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        return await (from member in dbContext.WorkspaceMembers.AsNoTracking()
+                      join workspace in dbContext.Workspaces.AsNoTracking() on member.WorkspaceId equals workspace.Id
+                      where member.UserId == userId
+                      orderby member.Role == WorkspaceMemberRole.Owner descending, member.CreatedAtUtc, workspace.Name
+                      select new AuthenticatedWorkspace(workspace.Id, workspace.Name, member.Role.ToString())).ToListAsync(cancellationToken);
+    }
+
+    private (AuthenticationSession Session, RefreshToken Token) CreateSession(ApplicationUser user, AuthenticatedWorkspace activeWorkspace, IReadOnlyCollection<AuthenticatedWorkspace> workspaces, Guid familyId, DateTimeOffset now)
     {
         var refreshValue = refreshTokenGenerator.Create();
-        var token = new RefreshToken(Guid.NewGuid(), user.Id, familyId, refreshTokenGenerator.Hash(refreshValue), now.AddDays(_options.RefreshTokenLifetimeDays));
-        var access = accessTokenIssuer.Issue(ToUser(user, workspace));
-        return (new AuthenticationSession(new AuthenticationResponse(access.Token, access.ExpiresAtUtc, ToUser(user, workspace)), refreshValue), token);
+        var token = new RefreshToken(Guid.NewGuid(), user.Id, familyId, activeWorkspace.Id, refreshTokenGenerator.Hash(refreshValue), now.AddDays(_options.RefreshTokenLifetimeDays));
+        var authenticatedUser = ToUser(user, activeWorkspace, workspaces);
+        var access = accessTokenIssuer.Issue(authenticatedUser);
+        return (new AuthenticationSession(new AuthenticationResponse(access.Token, access.ExpiresAtUtc, authenticatedUser), refreshValue), token);
     }
 
     private async Task RevokeFamilyAsync(Guid familyId, DateTimeOffset now, CancellationToken cancellationToken)
@@ -151,6 +200,6 @@ public sealed class IdentityAuthenticationService(
         return string.Concat(displayName.AsSpan(0, Math.Min(displayName.Length, Workspace.NameMaxLength - suffix.Length)), suffix);
     }
 
-    private static AuthenticatedWorkspace ToWorkspace(Workspace workspace) => new(workspace.Id, workspace.Name);
-    private static AuthenticatedUser ToUser(ApplicationUser user, AuthenticatedWorkspace workspace) => new(user.Id, user.Email ?? string.Empty, user.DisplayName, workspace);
+    private static AuthenticatedWorkspace ToWorkspace(Guid id, string name, WorkspaceMemberRole role) => new(id, name, role.ToString());
+    private static AuthenticatedUser ToUser(ApplicationUser user, AuthenticatedWorkspace activeWorkspace, IReadOnlyCollection<AuthenticatedWorkspace> workspaces) => new(user.Id, user.Email ?? string.Empty, user.DisplayName, activeWorkspace, workspaces);
 }

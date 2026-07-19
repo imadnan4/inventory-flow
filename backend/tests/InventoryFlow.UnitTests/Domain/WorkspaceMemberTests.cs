@@ -14,6 +14,14 @@ public sealed class WorkspaceMemberTests
         Assert.Equal(WorkspaceMemberRole.Owner, member.Role);
     }
 
+    /// <summary>Creates a Member membership.</summary>
+    [Fact]
+    public void Constructor_WithMember_CreatesMembership()
+    {
+        var member = new WorkspaceMember(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), WorkspaceMemberRole.Member, DateTimeOffset.UtcNow);
+        Assert.Equal(WorkspaceMemberRole.Member, member.Role);
+    }
+
     /// <summary>Rejects an undefined role.</summary>
     [Fact]
     public void Constructor_WithUnsupportedRole_ThrowsDomainException() =>

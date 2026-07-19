@@ -1,7 +1,9 @@
 using System.Text;
 using InventoryFlow.Application.Features.Authentication;
 using InventoryFlow.Application.Features.Products;
+using InventoryFlow.Application.Features.Collaboration;
 using InventoryFlow.Infrastructure.Authentication;
+using InventoryFlow.Infrastructure.Collaboration;
 using InventoryFlow.Infrastructure.Identity;
 using InventoryFlow.Application.Features.Warehouses;
 using InventoryFlow.Infrastructure.Warehouses;
@@ -83,6 +85,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<JwtAccessTokenIssuer>();
         services.AddSingleton<RefreshTokenGenerator>();
         services.AddScoped<IAuthenticationService, IdentityAuthenticationService>();
+        services.AddScoped<ICollaborationService, EfCollaborationService>();
         services.AddScoped<IProductCatalog, EfProductCatalog>();
         services.AddScoped<IWarehouseCatalog, EfWarehouseCatalog>();
         services.AddScoped<ISupplierCatalog, EfSupplierCatalog>();

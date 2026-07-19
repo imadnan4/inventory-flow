@@ -19,6 +19,9 @@ public sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refresh
         builder.Property(token => token.FamilyId)
             .IsRequired();
 
+        builder.Property(token => token.WorkspaceId)
+            .IsRequired();
+
         builder.Property(token => token.TokenHash)
             .HasMaxLength(128)
             .IsRequired();
@@ -33,9 +36,16 @@ public sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refresh
 
         builder.HasIndex(token => token.FamilyId);
 
+        builder.HasIndex(token => new { token.UserId, token.WorkspaceId });
+
         builder.HasOne<ApplicationUser>()
             .WithMany()
             .HasForeignKey(token => token.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne<Workspace>()
+            .WithMany()
+            .HasForeignKey(token => token.WorkspaceId)
+            .OnDelete(DeleteBehavior.NoAction);
     }
 }

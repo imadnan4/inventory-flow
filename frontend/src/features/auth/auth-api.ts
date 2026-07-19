@@ -20,6 +20,10 @@ export const refresh = () =>
   authClient
     .post<AuthenticationResponse>("/api/auth/refresh")
     .then((response) => response.data)
+export const switchWorkspace = (workspaceId: string) =>
+  apiClient
+    .post<AuthenticationResponse>("/api/auth/workspace/switch", { workspaceId })
+    .then((response) => response.data)
 export const logout = () => authClient.post("/api/auth/logout")
 export const getCurrentUser = () =>
   apiClient
