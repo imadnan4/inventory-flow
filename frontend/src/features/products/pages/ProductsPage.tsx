@@ -52,14 +52,14 @@ export function Component() {
     onError: (reason) => setError(readError(reason)),
   })
 
-  const submit = (form: FormData) => {
+  const submit = async (form: FormData) => {
     const parsed = productSchema.safeParse(Object.fromEntries(form))
     if (!parsed.success)
       return setError(
         parsed.error.issues[0]?.message ?? "Check the product details."
       )
     setError("")
-    create.mutate(parsed.data)
+    await create.mutateAsync(parsed.data).catch(() => {})
   }
 
   return (

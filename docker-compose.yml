@@ -18,7 +18,8 @@ services:
 
   migrate:
     build:
-      context: ./backend
+      context: .
+      dockerfile: backend/Dockerfile
       target: migrator
     environment: &api-environment
       ASPNETCORE_ENVIRONMENT: Development
@@ -31,7 +32,8 @@ services:
 
   api:
     build:
-      context: ./backend
+      context: .
+      dockerfile: backend/Dockerfile
       target: final
     environment: *api-environment
     depends_on:

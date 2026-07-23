@@ -8,7 +8,7 @@ public sealed class RegisterUserCommandValidator : AbstractValidator<RegisterUse
     /// <summary>Initializes validation rules.</summary>
     public RegisterUserCommandValidator()
     {
-        RuleFor(command => command.DisplayName).NotEmpty().MaximumLength(200).Must(name => name == name.Trim()).WithMessage("Display name cannot have leading or trailing whitespace.");
+        RuleFor(command => command.DisplayName).NotEmpty().MaximumLength(200).Must(name => name is not null && name == name.Trim()).WithMessage("Display name cannot have leading or trailing whitespace.");
         RuleFor(command => command.Email).NotEmpty().EmailAddress().MaximumLength(256);
         RuleFor(command => command.Password).NotEmpty();
     }
@@ -21,4 +21,20 @@ public sealed class RefreshSessionCommandValidator : AbstractValidator<RefreshSe
 { public RefreshSessionCommandValidator() => RuleFor(command => command.RefreshToken).NotEmpty(); }
 /// <summary>Validates current-user lookup input.</summary>
 public sealed class GetCurrentUserQueryValidator : AbstractValidator<GetCurrentUserQuery>
-{ public GetCurrentUserQueryValidator() => RuleFor(query => query.UserId).NotEmpty(); }
+{
+    public GetCurrentUserQueryValidator()
+    {
+        RuleFor(query => query.UserId).NotEmpty();
+        RuleFor(query => query.WorkspaceId).NotEmpty();
+    }
+}
+/// <summary>Validates workspace switch input.</summary>
+public sealed class SwitchWorkspaceCommandValidator : AbstractValidator<SwitchWorkspaceCommand>
+{
+    public SwitchWorkspaceCommandValidator()
+    {
+        RuleFor(command => command.UserId).NotEmpty();
+        RuleFor(command => command.WorkspaceId).NotEmpty();
+        RuleFor(command => command.RefreshToken).NotEmpty();
+    }
+}

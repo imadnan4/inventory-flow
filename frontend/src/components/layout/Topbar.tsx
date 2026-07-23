@@ -47,6 +47,8 @@ export function Topbar() {
 
     try {
       await logout()
+    } catch {
+      console.error("Failed to log out on the server")
     } finally {
       navigate("/login", { replace: true })
     }
@@ -63,6 +65,8 @@ export function Topbar() {
     try {
       const session = await switchWorkspace(workspaceId)
       setSession(session)
+    } catch {
+      console.error("Failed to switch workspace")
     } finally {
       setSwitchingWorkspaceId(null)
     }

@@ -11,6 +11,7 @@ public sealed class WorkspaceInvitationConfiguration : IEntityTypeConfiguration<
     /// <inheritdoc />
     public void Configure(EntityTypeBuilder<WorkspaceInvitation> builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
         builder.ToTable("WorkspaceInvitations");
         builder.HasKey(invitation => invitation.Id);
         builder.Property(invitation => invitation.NormalizedEmail).HasMaxLength(WorkspaceInvitation.NormalizedEmailMaxLength).IsRequired();
@@ -24,7 +25,7 @@ public sealed class WorkspaceInvitationConfiguration : IEntityTypeConfiguration<
         builder.HasIndex(invitation => invitation.TokenHash).IsUnique();
         builder.HasIndex(invitation => new { invitation.WorkspaceId, invitation.NormalizedEmail })
             .IsUnique()
-            .HasFilter("[AcceptedAtUtc] IS NULL AND [RevokedAtUtc] IS NULL");
+            .HasFilter("[AcceptedAtUtc] IS NULL AND [RevokedAtUtc] IS NULL AND [ExpiresAtUtc] > GETUTCDATE()");
         builder.HasIndex(invitation => new { invitation.WorkspaceId, invitation.CreatedAtUtc });
         builder.HasOne<Workspace>().WithMany().HasForeignKey(invitation => invitation.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne<ApplicationUser>().WithMany().HasForeignKey(invitation => invitation.CreatedByUserId).OnDelete(DeleteBehavior.NoAction);

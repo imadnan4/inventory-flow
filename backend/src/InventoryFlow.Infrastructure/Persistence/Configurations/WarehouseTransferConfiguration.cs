@@ -8,6 +8,7 @@ public sealed class WarehouseTransferConfiguration : IEntityTypeConfiguration<Wa
 {
     public void Configure(EntityTypeBuilder<WarehouseTransfer> builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
         builder.ToTable("WarehouseTransfers");
         builder.HasKey(transfer => transfer.Id);
         builder.Property(transfer => transfer.Quantity).HasPrecision(18, 4).IsRequired();

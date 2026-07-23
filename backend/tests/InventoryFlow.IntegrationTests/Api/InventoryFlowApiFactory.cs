@@ -18,6 +18,9 @@ public sealed class InventoryFlowApiFactory : WebApplicationFactory<Program>
 
     private readonly string? _originalConnectionString = Environment.GetEnvironmentVariable(
         ConnectionStringEnvironmentVariable);
+    private readonly string? _originalSigningKey = Environment.GetEnvironmentVariable("Jwt__SigningKey");
+    private readonly string? _originalIssuer = Environment.GetEnvironmentVariable("Jwt__Issuer");
+    private readonly string? _originalAudience = Environment.GetEnvironmentVariable("Jwt__Audience");
 
     /// <summary>
     /// Initializes a new instance of the <see cref="InventoryFlowApiFactory"/> class.
@@ -71,6 +74,9 @@ public sealed class InventoryFlowApiFactory : WebApplicationFactory<Program>
             Environment.SetEnvironmentVariable(
                 ConnectionStringEnvironmentVariable,
                 _originalConnectionString);
+            Environment.SetEnvironmentVariable("Jwt__SigningKey", _originalSigningKey);
+            Environment.SetEnvironmentVariable("Jwt__Issuer", _originalIssuer);
+            Environment.SetEnvironmentVariable("Jwt__Audience", _originalAudience);
         }
 
         base.Dispose(disposing);

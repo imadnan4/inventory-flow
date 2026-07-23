@@ -8,6 +8,7 @@ public sealed class PurchaseReceiptConfiguration : IEntityTypeConfiguration<Purc
 {
     public void Configure(EntityTypeBuilder<PurchaseReceipt> builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
         builder.ToTable("PurchaseReceipts");
         builder.HasKey(receipt => receipt.Id);
         builder.Property(receipt => receipt.Quantity).HasPrecision(18, 4).IsRequired();

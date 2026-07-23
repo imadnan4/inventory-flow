@@ -10,6 +10,7 @@ public sealed class InventoryMovementConfiguration : IEntityTypeConfiguration<In
     /// <inheritdoc />
     public void Configure(EntityTypeBuilder<InventoryMovement> builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
         builder.ToTable("InventoryMovements");
         builder.HasKey(movement => movement.Id);
         builder.Property(movement => movement.Type).HasConversion<int>().IsRequired();

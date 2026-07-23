@@ -40,6 +40,8 @@ export function Component() {
   const [formError, setFormError] = useState("")
   const [retryReceipt, setRetryReceipt] =
     useState<RecordPurchaseReceiptPayload | null>(null)
+
+  const clearRetry = () => { if (retryReceipt) setRetryReceipt(null) }
   const suppliers = useQuery({
     queryKey: key("suppliers", userId, workspaceId),
     queryFn: listSuppliers,
@@ -131,7 +133,7 @@ export function Component() {
                 <select
                   className="mt-1 w-full rounded-md border bg-background p-2"
                   disabled={disabled}
-                  onChange={(e) => setSupplierId(e.target.value)}
+                  onChange={(e) => { setSupplierId(e.target.value); clearRetry() }}
                   value={supplierId}
                 >
                   <option value="">Choose a supplier</option>
@@ -147,7 +149,7 @@ export function Component() {
                 <select
                   className="mt-1 w-full rounded-md border bg-background p-2"
                   disabled={disabled}
-                  onChange={(e) => setWarehouseId(e.target.value)}
+                  onChange={(e) => { setWarehouseId(e.target.value); clearRetry() }}
                   value={warehouseId}
                 >
                   <option value="">Choose a warehouse</option>
@@ -163,7 +165,7 @@ export function Component() {
                 <select
                   className="mt-1 w-full rounded-md border bg-background p-2"
                   disabled={disabled}
-                  onChange={(e) => setProductId(e.target.value)}
+                  onChange={(e) => { setProductId(e.target.value); clearRetry() }}
                   value={productId}
                 >
                   <option value="">Choose a product</option>
@@ -180,7 +182,7 @@ export function Component() {
                   className="mt-1 w-full rounded-md border bg-background p-2"
                   disabled={disabled}
                   inputMode="decimal"
-                  onChange={(e) => setQuantity(e.target.value)}
+                  onChange={(e) => { setQuantity(e.target.value); clearRetry() }}
                   placeholder="0.0000"
                   value={quantity}
                 />

@@ -13,6 +13,7 @@ type MetricCardProps = {
   value: string
   change: string
   trend: "up" | "down"
+  favorable?: boolean
   icon: IconSvgElement
   index: number
 }
@@ -22,10 +23,11 @@ export function MetricCard({
   value,
   change,
   trend,
+  favorable = trend === "up",
   icon,
   index,
 }: MetricCardProps) {
-  const isPositive = trend === "up"
+  const isPositive = favorable
 
   return (
     <motion.div

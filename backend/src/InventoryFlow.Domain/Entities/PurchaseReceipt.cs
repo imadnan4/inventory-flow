@@ -13,6 +13,7 @@ public sealed class PurchaseReceipt : Entity<Guid>
             productId == Guid.Empty || inventoryMovementId == Guid.Empty)
             throw new DomainException("Purchase receipt identifiers are required.");
         if (receivedAtUtc.Offset != TimeSpan.Zero) throw new DomainException("Purchase receipt time must be in UTC.");
+        if (idempotencyKey is null) throw new DomainException("Purchase receipt idempotency key is required.");
         WorkspaceId = workspaceId;
         SupplierId = supplierId;
         WarehouseId = warehouseId;

@@ -10,6 +10,7 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
     /// <inheritdoc />
     public void Configure(EntityTypeBuilder<Product> builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
         builder.ToTable("Products");
         builder.HasKey(product => product.Id);
         builder.Property(product => product.Name).HasMaxLength(Product.NameMaxLength).IsRequired();

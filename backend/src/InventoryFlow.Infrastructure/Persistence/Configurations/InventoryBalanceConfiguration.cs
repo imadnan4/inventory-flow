@@ -10,6 +10,7 @@ public sealed class InventoryBalanceConfiguration : IEntityTypeConfiguration<Inv
     /// <inheritdoc />
     public void Configure(EntityTypeBuilder<InventoryBalance> builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
         builder.ToTable("InventoryBalances");
         builder.HasKey(balance => new { balance.WorkspaceId, balance.WarehouseId, balance.ProductId });
         builder.Property(balance => balance.Quantity).HasPrecision(18, 4).IsRequired();

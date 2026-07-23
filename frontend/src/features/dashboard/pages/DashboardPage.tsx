@@ -64,6 +64,7 @@ const metrics: Metric[] = [
     value: "24",
     change: "2.4%",
     trend: "down",
+    favorable: true,
     icon: Alert02Icon,
   },
 ]
@@ -99,7 +100,7 @@ export function Component() {
   return (
     <div className="space-y-8">
       <PageHeader
-        actions={<Button>Export report</Button>}
+        actions={<Button disabled>Export report</Button>}
         description="A real-time view of inventory health and operational activity."
         title="Dashboard"
       />

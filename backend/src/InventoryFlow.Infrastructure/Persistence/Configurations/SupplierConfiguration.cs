@@ -10,6 +10,7 @@ public sealed class SupplierConfiguration : IEntityTypeConfiguration<Supplier>
     /// <inheritdoc />
     public void Configure(EntityTypeBuilder<Supplier> builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
         builder.ToTable("Suppliers");
         builder.HasKey(supplier => supplier.Id);
         builder.Property(supplier => supplier.Name).HasMaxLength(Supplier.NameMaxLength).IsRequired();

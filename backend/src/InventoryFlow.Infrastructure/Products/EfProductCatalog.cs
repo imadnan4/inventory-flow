@@ -5,11 +5,12 @@ using InventoryFlow.Domain.Entities;
 using InventoryFlow.Infrastructure.Persistence;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace InventoryFlow.Infrastructure.Products;
 
 /// <summary>Persists workspace-scoped products with SQL Server uniqueness and lifecycle handling.</summary>
-public sealed class EfProductCatalog(ApplicationDbContext dbContext) : IProductCatalog
+public sealed class EfProductCatalog(ApplicationDbContext dbContext, IServiceScopeFactory scopeFactory) : IProductCatalog
 {
     /// <inheritdoc />
     public async Task<Product> CreateAsync(Product product, CancellationToken cancellationToken)
@@ -40,30 +41,32 @@ public sealed class EfProductCatalog(ApplicationDbContext dbContext) : IProductC
         CancellationToken cancellationToken)
     {
         var strategy = dbContext.Database.CreateExecutionStrategy();
-        return await strategy.ExecuteAsync(async () =>
+        return await strategy.ExecuteAsync(async (ct) =>
         {
-            await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
-            var product = await dbContext.Products.SingleOrDefaultAsync(item => item.WorkspaceId == workspaceId &&
-                item.Id == productId, cancellationToken);
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var attemptCtx = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            await using var transaction = await attemptCtx.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+            var product = await attemptCtx.Products.SingleOrDefaultAsync(item => item.WorkspaceId == workspaceId &&
+                item.Id == productId, ct);
             if (product is null)
             {
-                await transaction.RollbackAsync(cancellationToken);
+                await transaction.RollbackAsync(ct);
                 return false;
             }
 
-            var hasOnHandBalance = await dbContext.InventoryBalances.AnyAsync(balance => balance.WorkspaceId == workspaceId &&
-                balance.ProductId == productId && balance.Quantity != 0m, cancellationToken);
+            var hasOnHandBalance = await attemptCtx.InventoryBalances.AnyAsync(balance => balance.WorkspaceId == workspaceId &&
+                balance.ProductId == productId && balance.Quantity != 0m, ct);
             if (hasOnHandBalance)
             {
-                await transaction.RollbackAsync(cancellationToken);
+                await transaction.RollbackAsync(ct);
                 throw new InventoryArchiveConflictException();
             }
 
             product.Archive(archivedAtUtc);
-            await dbContext.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
+            await attemptCtx.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
             return true;
-        });
+        }, cancellationToken);
     }
 
     /// <inheritdoc />

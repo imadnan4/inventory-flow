@@ -52,14 +52,14 @@ export function Component() {
     onError: (reason) => setError(readError(reason)),
   })
 
-  const submit = (form: FormData) => {
+  const submit = async (form: FormData) => {
     const parsed = warehouseSchema.safeParse(Object.fromEntries(form))
     if (!parsed.success)
       return setError(
         parsed.error.issues[0]?.message ?? "Check the warehouse details."
       )
     setError("")
-    create.mutate(parsed.data)
+    await create.mutateAsync(parsed.data).catch(() => {})
   }
 
   return (
@@ -94,9 +94,6 @@ export function Component() {
                   >
                     <div>
                       <p className="font-medium">{warehouse.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {warehouse.name}
-                      </p>
                     </div>
                     <Button
                       disabled={archive.isPending}
@@ -120,14 +117,6 @@ export function Component() {
             <form action={submit} className="space-y-4">
               <label className="block text-sm">
                 Name
-                <input
-                  className="mt-1 w-full rounded-md border bg-background p-2"
-                  name="name"
-                  required
-                />
-              </label>
-              <label className="block text-sm">
-                name
                 <input
                   className="mt-1 w-full rounded-md border bg-background p-2"
                   name="name"

@@ -2,6 +2,11 @@ import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios"
 import { environment } from "@/app/config/environment"
 import { useAuthStore } from "@/features/auth/auth-store"
 
+type AuthRequestConfig = InternalAxiosRequestConfig & {
+  _authRetried?: boolean
+  _sessionEpoch?: number
+}
+
 export const authClient = axios.create({
   baseURL: environment.apiBaseUrl,
   withCredentials: true,
@@ -44,14 +49,20 @@ const refreshAccessToken = () => {
 }
 
 apiClient.interceptors.request.use((config) => {
+  const request = config as AuthRequestConfig
+  request._sessionEpoch = sessionEpoch
   const token = useAuthStore.getState().accessToken
-  if (token) config.headers.Authorization = `Bearer ${token}`
-  return config
+  if (token) request.headers.Authorization = `Bearer ${token}`
+  return request
 })
 apiClient.interceptors.response.use(undefined, async (error: AxiosError) => {
-  const request = error.config as
-    (InternalAxiosRequestConfig & { _authRetried?: boolean }) | undefined
-  if (error.response?.status !== 401 || !request || request._authRetried)
+  const request = error.config as AuthRequestConfig | undefined
+  if (
+    error.response?.status !== 401 ||
+    !request ||
+    request._authRetried ||
+    request._sessionEpoch !== sessionEpoch
+  )
     return Promise.reject(error)
   request._authRetried = true
   const token = await refreshAccessToken()

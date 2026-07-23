@@ -16,7 +16,13 @@ internal sealed class InventoryLedgerWriter(ApplicationDbContext dbContext)
 
         var existing = await dbContext.InventoryMovements.SingleOrDefaultAsync(movement => movement.WorkspaceId == workspaceId &&
             movement.IdempotencyKey == idempotencyKey, cancellationToken);
-        if (existing is not null) return existing;
+        if (existing is not null)
+        {
+            if (existing.WarehouseId != warehouseId || existing.ProductId != productId ||
+                existing.Type != type || existing.Quantity != quantity)
+                throw new InvalidOperationException("Idempotency key reused with different parameters.");
+            return existing;
+        }
 
         var warehouseExists = await dbContext.Warehouses.AnyAsync(warehouse => warehouse.Id == warehouseId &&
             warehouse.WorkspaceId == workspaceId && warehouse.ArchivedAtUtc == null, cancellationToken);

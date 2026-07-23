@@ -43,6 +43,9 @@ public sealed class EfWarehouseTransferService(ApplicationDbContext dbContext, I
             transfer.IdempotencyKey == idempotencyKey, cancellationToken);
         if (existing is not null)
         {
+            if (existing.SourceWarehouseId != sourceWarehouseId || existing.DestinationWarehouseId != destinationWarehouseId ||
+                existing.ProductId != productId || existing.Quantity != quantity)
+                throw new InvalidOperationException("Idempotency key reused with different parameters.");
             await transaction.CommitAsync(cancellationToken);
             return existing;
         }

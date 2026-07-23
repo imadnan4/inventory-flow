@@ -73,6 +73,7 @@ public sealed class GlobalExceptionHandler(
             Type = statusCode switch
             {
                 StatusCodes.Status400BadRequest => "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+                StatusCodes.Status401Unauthorized => "https://tools.ietf.org/html/rfc9110#section-15.5.2",
                 StatusCodes.Status403Forbidden => "https://tools.ietf.org/html/rfc9110#section-15.5.4",
                 StatusCodes.Status409Conflict => "https://tools.ietf.org/html/rfc9110#section-15.5.10",
                 _ => "https://tools.ietf.org/html/rfc9110#section-15.6.1",

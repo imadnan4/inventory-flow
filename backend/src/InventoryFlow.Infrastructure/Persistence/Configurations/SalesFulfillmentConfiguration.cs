@@ -8,6 +8,7 @@ public sealed class SalesFulfillmentConfiguration : IEntityTypeConfiguration<Sal
 {
     public void Configure(EntityTypeBuilder<SalesFulfillment> builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
         builder.ToTable("SalesFulfillments");
         builder.HasKey(fulfillment => fulfillment.Id);
         builder.Property(fulfillment => fulfillment.Quantity).HasPrecision(18, 4).IsRequired();

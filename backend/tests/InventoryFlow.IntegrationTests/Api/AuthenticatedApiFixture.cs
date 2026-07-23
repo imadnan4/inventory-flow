@@ -38,7 +38,8 @@ public sealed class AuthenticatedApiFixture : IAsyncLifetime
     /// <inheritdoc />
     public async Task InitializeAsync()
     {
-        await _sqlServer.StartAsync();
+        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        await _sqlServer.StartAsync(timeoutCts.Token);
 
         var databaseName = $"InventoryFlowTests_{Guid.NewGuid():N}";
         await using (var connection = new SqlConnection(_sqlServer.GetConnectionString()))
@@ -65,7 +66,7 @@ public sealed class AuthenticatedApiFixture : IAsyncLifetime
 
         await using var scope = Factory.Services.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        await dbContext.Database.MigrateAsync();
+        await dbContext.Database.MigrateAsync(timeoutCts.Token);
     }
 
     /// <inheritdoc />

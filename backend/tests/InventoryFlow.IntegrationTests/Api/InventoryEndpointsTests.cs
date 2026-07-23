@@ -201,7 +201,8 @@ public sealed class InventoryEndpointsTests : IClassFixture<AuthenticatedApiFixt
     {
         using var response = await SendAsync(HttpMethod.Post, path, token, content);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        return (await response.Content.ReadFromJsonAsync<T>())!;
+        var payload = await response.Content.ReadFromJsonAsync<T>();
+        return Assert.IsType<T>(payload);
     }
 
     private async Task<AuthenticationResponse> RegisterSessionAsync()
@@ -209,7 +210,8 @@ public sealed class InventoryEndpointsTests : IClassFixture<AuthenticatedApiFixt
         var suffix = Guid.NewGuid().ToString("N");
         using var response = await _client.PostAsJsonAsync("/api/auth/register", new RegisterUserCommand($"User {suffix}", $"user-{suffix}@example.test", "Password!12345"));
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        return (await response.Content.ReadFromJsonAsync<AuthenticationResponse>())!;
+        var payload = await response.Content.ReadFromJsonAsync<AuthenticationResponse>();
+        return Assert.IsType<AuthenticationResponse>(payload);
     }
 
     private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, string token, object? content = null)

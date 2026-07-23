@@ -13,6 +13,7 @@ public sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refresh
     /// <inheritdoc />
     public void Configure(EntityTypeBuilder<RefreshToken> builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
         builder.ToTable("RefreshTokens");
         builder.HasKey(token => token.Id);
 

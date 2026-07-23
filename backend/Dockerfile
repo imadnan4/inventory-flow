@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS base
+FROM mcr.microsoft.com/dotnet/sdk:9.0.316 AS base
 ARG APP_UID=10001
 ARG APP_GID=10001
 RUN groupadd --system --gid ${APP_GID} inventoryflow \
@@ -26,7 +26,7 @@ RUN dotnet build src/InventoryFlow.Api/InventoryFlow.Api.csproj --configuration 
 FROM build AS publish
 RUN dotnet publish src/InventoryFlow.Api/InventoryFlow.Api.csproj --configuration Release --no-build --output /app/publish
 
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:9.0.316 AS final
 ARG APP_UID=10001
 ARG APP_GID=10001
 RUN groupadd --system --gid ${APP_GID} inventoryflow \
