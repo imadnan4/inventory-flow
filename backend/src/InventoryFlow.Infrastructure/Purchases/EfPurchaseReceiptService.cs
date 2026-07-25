@@ -19,7 +19,7 @@ public sealed class EfPurchaseReceiptService(ApplicationDbContext dbContext, ISe
         var strategy = dbContext.Database.CreateExecutionStrategy();
         return await strategy.ExecuteAsync(async (ct) =>
         {
-            await using var scope = scopeFactory.CreateScope();
+            using var scope = scopeFactory.CreateScope();
             var attemptCtx = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             await using var transaction = await attemptCtx.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
             var existing = await attemptCtx.PurchaseReceipts.SingleOrDefaultAsync(receipt => receipt.WorkspaceId == workspaceId &&
