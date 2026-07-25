@@ -16,71 +16,47 @@ public sealed class EfPurchaseReceiptService(ApplicationDbContext dbContext, ISe
     {
         quantity = InventoryMovement.ValidateQuantity(quantity);
         idempotencyKey = InventoryMovement.NormalizeIdempotencyKey(idempotencyKey);
-            var strategy = dbContext.Database.CreateExecutionStrategy();
-            return await strategy.ExecuteAsync(async () =>
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async (ct) =>
+        {
+            await using var scope = scopeFactory.CreateScope();
+            var attemptCtx = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            await using var transaction = await attemptCtx.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+            var existing = await attemptCtx.PurchaseReceipts.SingleOrDefaultAsync(receipt => receipt.WorkspaceId == workspaceId &&
+                receipt.IdempotencyKey == idempotencyKey, ct);
+            if (existing is not null)
             {
-                var attemptCtx = scopeFactory.CreateScope().ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                await using var transaction = await attemptCtx.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
-                var existing = await attemptCtx.PurchaseReceipts.SingleOrDefaultAsync(receipt => receipt.WorkspaceId == workspaceId &&
-                    receipt.IdempotencyKey == idempotencyKey, cancellationToken);
-                if (existing is not null)
-                {
-                    if (existing.SupplierId != supplierId || existing.WarehouseId != warehouseId ||
-                        existing.ProductId != productId || existing.Quantity != quantity)
-                        throw new InvalidOperationException("Idempotency key reused with different parameters.");
-                    await transaction.CommitAsync(cancellationToken);
-                    return existing;
-                }
+                if (existing.SupplierId != supplierId || existing.WarehouseId != warehouseId ||
+                    existing.ProductId != productId || existing.Quantity != quantity)
+                    throw new InvalidOperationException("Idempotency key reused with different parameters.");
+                await transaction.CommitAsync(ct);
+                return existing;
+            }
 
-                var supplierExists = await attemptCtx.Suppliers.AnyAsync(supplier => supplier.Id == supplierId &&
-                    supplier.WorkspaceId == workspaceId && supplier.ArchivedAtUtc == null, cancellationToken);
-                if (!supplierExists)
-                {
-                    await transaction.RollbackAsync(cancellationToken);
-                    return null;
-                }
-
-                var receiptId = Guid.NewGuid();
-                var movement = await new InventoryLedgerWriter(attemptCtx).RecordAsync(workspaceId, warehouseId, productId,
-                    InventoryMovementType.Receipt, quantity, receiptId.ToString("N"), receivedAtUtc, Guid.NewGuid(), cancellationToken);
-                if (movement is null)
-                {
-                    await transaction.RollbackAsync(cancellationToken);
-                    return null;
-                }
-
-                var receipt = new PurchaseReceipt(receiptId, workspaceId, supplierId, warehouseId, productId, quantity, idempotencyKey,
-                    movement.Id, receivedAtUtc);
-                attemptCtx.PurchaseReceipts.Add(receipt);
-                await attemptCtx.SaveChangesAsync(cancellationToken);
-                await transaction.CommitAsync(cancellationToken);
-                return receipt;
-            });
-
-            var supplierExists = await dbContext.Suppliers.AnyAsync(supplier => supplier.Id == supplierId &&
-                supplier.WorkspaceId == workspaceId && supplier.ArchivedAtUtc == null, cancellationToken);
+            var supplierExists = await attemptCtx.Suppliers.AnyAsync(supplier => supplier.Id == supplierId &&
+                supplier.WorkspaceId == workspaceId && supplier.ArchivedAtUtc == null, ct);
             if (!supplierExists)
             {
-                await transaction.RollbackAsync(cancellationToken);
+                await transaction.RollbackAsync(ct);
                 return null;
             }
 
             var receiptId = Guid.NewGuid();
-            var movement = await new InventoryLedgerWriter(dbContext).RecordAsync(workspaceId, warehouseId, productId,
-                InventoryMovementType.Receipt, quantity, receiptId.ToString("N"), receivedAtUtc, Guid.NewGuid(), cancellationToken);
+            var movement = await new InventoryLedgerWriter(attemptCtx).RecordAsync(workspaceId, warehouseId, productId,
+                InventoryMovementType.Receipt, quantity, receiptId.ToString("N"), receivedAtUtc, Guid.NewGuid(), ct);
             if (movement is null)
             {
-                await transaction.RollbackAsync(cancellationToken);
+                await transaction.RollbackAsync(ct);
                 return null;
             }
 
             var receipt = new PurchaseReceipt(receiptId, workspaceId, supplierId, warehouseId, productId, quantity, idempotencyKey,
                 movement.Id, receivedAtUtc);
-            dbContext.PurchaseReceipts.Add(receipt);
-            await dbContext.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
+            attemptCtx.PurchaseReceipts.Add(receipt);
+            await attemptCtx.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
             return receipt;
-        });
+        }, cancellationToken);
     }
 
     public async Task<IReadOnlyList<PurchaseReceipt>> ListAsync(Guid workspaceId, CancellationToken cancellationToken) =>

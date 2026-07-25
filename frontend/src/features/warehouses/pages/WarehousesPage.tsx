@@ -15,14 +15,14 @@ import { useAuthStore } from "@/features/auth/auth-store"
 const warehousesKey = (userId: string, workspaceId: string) =>
   ["warehouses", userId, workspaceId] as const
 
-const readError = (error: unknown) => {
+const readError = (error: unknown, fallback = "Unable to save the warehouse.") => {
   if (typeof error === "object" && error && "response" in error) {
     const data = (
       error as { response?: { data?: { detail?: string; title?: string } } }
     ).response?.data
-    return data?.detail ?? data?.title ?? "Unable to save the warehouse."
+    return data?.detail ?? data?.title ?? fallback
   }
-  return "Unable to save the warehouse."
+  return fallback
 }
 
 export function Component() {
@@ -49,7 +49,7 @@ export function Component() {
   const archive = useMutation({
     mutationFn: archiveWarehouse,
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
-    onError: (reason) => setError(readError(reason)),
+    onError: (reason) => setError(readError(reason, "Unable to archive the warehouse.")),
   })
 
   const submit = async (form: FormData) => {
@@ -59,7 +59,7 @@ export function Component() {
         parsed.error.issues[0]?.message ?? "Check the warehouse details."
       )
     setError("")
-    await create.mutateAsync(parsed.data).catch(() => {})
+    await create.mutateAsync(parsed.data)
   }
 
   return (
@@ -79,7 +79,7 @@ export function Component() {
             ) : null}
             {warehouses.isError ? (
               <p className="text-destructive" role="alert">
-                {readError(warehouses.error)}
+                {readError(warehouses.error, "Unable to load warehouses.")}
               </p>
             ) : null}
             {warehouses.data?.length === 0 ? (
