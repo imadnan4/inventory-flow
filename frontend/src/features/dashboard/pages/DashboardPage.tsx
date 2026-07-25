@@ -34,6 +34,7 @@ type Metric = {
   value: string
   change: string
   trend: "up" | "down"
+  favorable?: boolean
   icon: IconSvgElement
 }
 
