@@ -47,6 +47,8 @@ This project uses a two-branch workflow:
 
 - CI runs automatically on PRs and pushes to `main`.
 - Backend: Restore → Build → Test → Format check (all .NET 9).
+  - Integration tests use **Testcontainers** to spin up a SQL Server Docker container automatically in CI.
+  - For local testing, ensure Docker is running (`docker-compose up -d sql`).
 - Frontend: Install → Typecheck → Lint → Build (Bun + Vite).
 
 ## Code Review
