@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NetArchTest.Rules" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\InventoryFlow.Api\InventoryFlow.Api.csproj" />
+    <ProjectReference Include="..\..\src\InventoryFlow.Application\InventoryFlow.Application.csproj" />
+    <ProjectReference Include="..\..\src\InventoryFlow.Domain\InventoryFlow.Domain.csproj" />
+    <ProjectReference Include="..\..\src\InventoryFlow.Infrastructure\InventoryFlow.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\InventoryFlow.Shared\InventoryFlow.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="NetArchTest.Rules" />
+    <Using Include="System.Collections.Immutable" />
+  </ItemGroup>
+
+</Project>

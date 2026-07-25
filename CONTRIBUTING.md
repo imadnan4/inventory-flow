@@ -43,13 +43,64 @@ This project uses a two-branch workflow:
    git push origin main
    ```
 
-## CI/CD
+## Testing
 
-- CI runs automatically on PRs and pushes to `main`.
-- Backend: Restore → Build → Test → Format check (all .NET 9).
-  - Integration tests use **Testcontainers** to spin up a SQL Server Docker container automatically in CI.
-  - For local testing, ensure Docker is running (`docker-compose up -d sql`).
-- Frontend: Install → Typecheck → Lint → Build (Bun + Vite).
+### Test Projects
+
+| Project | Scope | Type |
+|---|---|---|
+| `InventoryFlow.UnitTests` | Domain entities, value objects | Pure unit (no mocks) |
+| `InventoryFlow.Application.Tests` | Application handlers, validators, DTOs | Unit with mocks (NSubstitute) |
+| `InventoryFlow.IntegrationTests` | API endpoints, repositories | Integration (Testcontainers/SQL Server) |
+| `InventoryFlow.ArchTests` | Layer dependency rules | Architecture (NetArchTest) |
+| `frontend` (Vitest + RTL) | Components, hooks, utilities | Unit + component tests |
+
+### Running Tests
+
+```bash
+# Backend - all tests
+dotnet test backend/InventoryFlow.sln
+
+# Backend - unit tests only
+dotnet test backend/InventoryFlow.sln --filter "FullyQualifiedName~UnitTests"
+
+# Backend - integration tests only (requires Docker + SQL Server)
+dotnet test backend/InventoryFlow.sln --filter "FullyQualifiedName~IntegrationTests"
+
+# Backend - architecture tests (no infrastructure)
+dotnet test backend/InventoryFlow.sln --filter "FullyQualifiedName~ArchTests"
+
+# Frontend - watch mode
+cd frontend && bun run test
+
+# Frontend - CI run
+cd frontend && bun run test:run
+
+# Frontend - coverage
+cd frontend && bun run test:coverage
+
+# Frontend - E2E
+cd frontend && bun run e2e
+```
+
+### Frontend Testing Strategy
+
+We use the **Testing Trophy** approach:
+- **Vitest** for unit and component tests (fast feedback, runs on every commit)
+- **React Testing Library** for user-facing component tests (test behavior, not implementation)
+- **MSW** for API mocking in tests (intercepts network layer, not fetch calls)
+- **Playwright** for critical E2E paths (auth flows, core feature journeys)
+
+### Test Naming Convention
+
+```csharp
+// Format: ClassName_MethodName_Scenario_ExpectedBehavior
+[Fact]
+public void Handle_WhenProductNotFound_ReturnsNotFound()
+
+[Fact]
+public void GetInventoryItems_WithEmptyDatabase_ReturnsEmptyList()
+```
 
 ## Code Review
 
