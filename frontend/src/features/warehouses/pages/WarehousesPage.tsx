@@ -38,6 +38,7 @@ export function Component() {
     queryFn: listWarehouses,
     enabled: user !== null,
   })
+  const [archiveError, setArchiveError] = useState("")
   const create = useMutation({
     mutationFn: createWarehouse,
     onSuccess: () => {
@@ -48,8 +49,11 @@ export function Component() {
   })
   const archive = useMutation({
     mutationFn: archiveWarehouse,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey }),
-    onError: (reason) => setError(readError(reason, "Unable to archive the warehouse.")),
+    onSuccess: () => {
+      setArchiveError("")
+      queryClient.invalidateQueries({ queryKey })
+    },
+    onError: (reason) => setArchiveError(readError(reason, "Unable to archive the warehouse.")),
   })
 
   const submit = async (form: FormData) => {
@@ -59,7 +63,7 @@ export function Component() {
         parsed.error.issues[0]?.message ?? "Check the warehouse details."
       )
     setError("")
-    await create.mutateAsync(parsed.data)
+    await create.mutateAsync(parsed.data).catch(() => {})
   }
 
   return (
@@ -123,11 +127,16 @@ export function Component() {
                   required
                 />
               </label>
-              {error ? (
-                <p className="text-sm text-destructive" role="alert">
-                  {error}
-                </p>
-              ) : null}
+               {error ? (
+                 <p className="text-sm text-destructive" role="alert">
+                   {error}
+                 </p>
+               ) : null}
+               {archiveError ? (
+                 <p className="text-sm text-destructive" role="alert">
+                   {archiveError}
+                 </p>
+               ) : null}
               <Button disabled={create.isPending} type="submit">
                 {create.isPending ? "Adding…" : "Add warehouse"}
               </Button>
