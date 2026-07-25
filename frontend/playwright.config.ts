@@ -20,8 +20,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npm run build && npx vite preview --port 8080",
+    command: "bun run dev --port 8080",
     url: "http://localhost:8080",
     reuseExistingServer: !process.env.CI,
+    timeout: 30000,
   },
 })

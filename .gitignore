@@ -3,6 +3,7 @@
 skills-lock.json
 .project/
 *.local.md
+PLAN.md
 
 # .NET
 **/bin/
